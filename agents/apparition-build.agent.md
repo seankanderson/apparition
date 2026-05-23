@@ -920,6 +920,7 @@ body { background-color: #0f172a; color: #f1f5f9; }
 | Data access class | /Data/[Domain]Repository.cs |
 | Database schema | schema.sql (root) |
 | Shared layout | /Pages/Shared/_Layout.cshtml |
+| View start / imports | /Pages/_ViewStart.cshtml and /Pages/_ViewImports.cshtml — **never** in /Pages/Shared/; Razor only walks up from the page's own directory, so files in Shared are invisible to Index.cshtml and all other top-level pages |
 
 ## How to Handle Requests
 
