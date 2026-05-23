@@ -25,21 +25,60 @@ You store everything in `data`. The `type` column tells you what kind of thing i
 
 ---
 
+## JSON Key Casing — Always Use CamelCase
+
+**This is the single most common source of silent bugs in Apparition apps.**
+
+PostgreSQL JSONB key lookups are case-sensitive. `data->>'email'` and `data->>'Email'` are different keys.
+`System.Text.Json` serializes named C# records and classes with **PascalCase** keys by default (`Email`, `PasswordHash`),
+but camelCase (`email`, `passwordHash`) is the convention used in SQL queries and anonymous objects.
+
+**Always declare a shared options instance in every repository and use it for all serialization and deserialization:**
+
+```csharp
+private static readonly JsonSerializerOptions _json = new()
+{
+    PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
+    PropertyNameCaseInsensitive = true   // tolerant on read
+};
+```
+
+Then use it consistently:
+```csharp
+// Writing
+var json = JsonSerializer.Serialize(myRecord, _json);
+
+// Reading
+var obj = JsonSerializer.Deserialize<MyDto>(json, _json);
+```
+
+SQL queries must use the camelCase key names that result from this policy:
+```sql
+-- correct — matches camelCase JSON key
+WHERE data->>'email' = @email
+
+-- WRONG — PascalCase only matches if you serialized without CamelCase policy
+WHERE data->>'Email' = @email
+```
+
+If you use anonymous objects (`new { email = ..., status = ... }`) the keys are already camelCase,
+but **named records must use the options above** or the keys will be PascalCase and queries will return nothing.
+
+---
+
 ## Storing Data
 
 ### Example: Save an order
 
 ```csharp
-var order = new {
-    customerId = "cust-123",
-    items = new[] {
-        new { sku = "WIDGET-01", qty = 2, price = 19.99 }
-    },
-    status = "pending",
-    total = 39.98
+private static readonly JsonSerializerOptions _json = new()
+{
+    PropertyNamingPolicy        = JsonNamingPolicy.CamelCase,
+    PropertyNameCaseInsensitive = true
 };
 
-var json = JsonSerializer.Serialize(order);
+var order = new OrderData("cust-123", "pending", 39.98);
+var json = JsonSerializer.Serialize(order, _json);
 
 await db.ExecuteAsync(@"
     INSERT INTO documents (type, data)

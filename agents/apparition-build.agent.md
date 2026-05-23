@@ -236,7 +236,7 @@ public static class SeedAdmin
             return; // env vars not set — skip silently
 
         var exists = await db.ExecuteScalarAsync<bool>(
-            "SELECT EXISTS(SELECT 1 FROM documents WHERE type = 'user' AND data->>'email' = @email)",
+            "SELECT EXISTS(SELECT 1 FROM documents WHERE type = 'user' AND lower(data->>'email') = lower(@email))",
             new { email });
 
         if (!exists)
@@ -961,6 +961,7 @@ body { background-color: #0f172a; color: #f1f5f9; }
 | Data access class | /Data/[Domain]Repository.cs |
 | Database schema | schema.sql (root) |
 | Shared layout | /Pages/Shared/_Layout.cshtml |
+| View start / imports | /Pages/_ViewStart.cshtml and /Pages/_ViewImports.cshtml — **never** in /Pages/Shared/; Razor only walks up from the page's own directory, so files in Shared are invisible to Index.cshtml and all other top-level pages |
 
 ## How to Handle Requests
 
@@ -1071,6 +1072,7 @@ the git push commands for their repo URL.
 - Do not generate unit test projects
 - Do not change the database from PostgreSQL
 - Do not use Entity Framework even if the user asks — explain why and offer Dapper instead
+- **Do not serialize JSONB data without `JsonNamingPolicy.CamelCase`** — `System.Text.Json` defaults to PascalCase for named records and classes, which causes SQL queries like `data->>'email'` to silently return nothing because PostgreSQL JSONB key lookups are case-sensitive; every repository must declare `private static readonly JsonSerializerOptions _json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true }` and use it for all serialize/deserialize calls
 - **Do not write the user's app code into the Apparition toolkit folder**
 - **Do not skip updating `SPEC.md` and `docs/implementation.md` after a build session**
 - **Do not make code changes without offering the user a keep/undo choice and committing on keep**

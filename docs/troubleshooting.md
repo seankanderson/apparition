@@ -161,6 +161,28 @@ Fix: Make sure your `Pages/Index.cshtml` returns a 200 OK (the default for a val
 
 ---
 
+## Authentication
+
+### Login fails even though the password is correct
+
+**Symptom:** You type the right email and password but get "Invalid email or password." The credentials are definitely correct.
+
+**Cause:** PostgreSQL's `=` operator is case-sensitive on text. If the email was stored as `Dora@example.com` but you type `dora@example.com`, the query returns no rows and login fails.
+
+**Fix:** In `Data/UserRepository.cs`, change the email lookup SQL to compare both sides lowercased:
+
+```csharp
+// Before (case-sensitive — buggy):
+"SELECT id::text, data FROM documents WHERE type = 'user' AND data->>'email' = @email"
+
+// After (case-insensitive — correct):
+"SELECT id::text, data FROM documents WHERE type = 'user' AND lower(data->>'email') = lower(@email)"
+```
+
+Apply the same fix anywhere else in the codebase that looks up a user by email (e.g. `SeedAdmin.cs`).
+
+---
+
 ## Known Build Gotchas
 
 These are issues that have caused real build failures. Check here before spending time debugging.
