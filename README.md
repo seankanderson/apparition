@@ -8,16 +8,17 @@ Apparition gives you a production-ready full-stack template, a set of copy-paste
 
 ## What You Get
 
-| Component          | What it does                                                           |
-| ------------------ | ---------------------------------------------------------------------- |
-| **Stack Template** | ASP.NET Core + Razor Pages + PostgreSQL — pre-wired and ready to clone |
-| **Prompt Library** | Battle-tested AI prompts you paste into Copilot, ChatGPT, or Claude    |
-| **AI Agents**      | Agent definitions that work with VS Code, Claude, Cursor, and others   |
-| **Deploy Guides**  | Step-by-step instructions for Railway and Render                       |
+| Component               | What it does                                                           |
+| ----------------------- | ---------------------------------------------------------------------- |
+| **Stack Template**      | ASP.NET Core + Razor Pages + PostgreSQL — pre-wired and ready to clone |
+| **Prompt Library**      | Battle-tested AI prompts you paste into Copilot, ChatGPT, or Claude    |
+| **AI Agents**           | Agent definitions that work with VS Code, Claude, Cursor, and others   |
+| **Styled & Responsive** | Bootstrap 5 built in — every app looks great on mobile out of the box  |
+| **Deploy Guides**       | Step-by-step instructions for Railway and Render                       |
 
 The hard decisions — how the app is built, how it stays secure, how it handles logins and sensitive data — are already made. You don't need to worry about the engineering, just the creativity. You  answer simple questions about what you want, and the AI handles the rest as defined by experienced software developers.
 
-Nothing you build from Apparition goes to waste, your app can always be taken over by experienced software engineers at any time and be quickly expanded or upgraded easily. 
+Nothing you build from Apparition goes to waste, your app can always be picked up by experienced software engineers at any time and be quickly expanded or upgraded easily. 
 
 ---
 
@@ -26,6 +27,9 @@ Nothing you build from Apparition goes to waste, your app can always be taken ov
 ```
 Frontend:   Razor Pages  (plain HTML — no React, no build pipeline)
             Alpine.js via CDN  (lightweight reactivity when needed — no build step)
+Styling:    Bootstrap 5 via CDN  (responsive grid, full component library, no install)
+            site.css  (brand color overrides only — under 25 lines)
+            Page styles  (kept inline per page — never added to the central file)
 Backend:    ASP.NET Core Minimal API  (.NET 8)
 Database:   PostgreSQL with JSONB columns
 ORM:        Dapper  (not Entity Framework — intentionally)
@@ -33,7 +37,11 @@ Auth:       Cookie-based  (always included — no third-party service needed)
 Hosting:    Railway (primary) · Render (fallback)
 ```
 
-Every decision was made to keep AI output small, predictable, and deployable on first try. Razor Pages handles full-page interactions; Alpine.js (one CDN script tag) handles anything that needs to feel instant — live search, status toggles, modals — without a build pipeline. See [docs/architecture.md](docs/architecture.md) for the full reasoning.
+Every decision was made to keep AI output small, predictable, and deployable on first try. Razor Pages handles full-page interactions; Alpine.js (one CDN script tag) handles anything that needs to feel instant — live search, status toggles, modals — without a build pipeline.
+
+**Styling is built in.** Bootstrap 5 is included via CDN — no installation, no build step. When you answer questions about your app's look and feel during the interview, the agent generates a small brand-color override file and that's it. No sprawling stylesheet. Every page keeps its own custom styles inline, right next to the markup that needs them. This keeps the central CSS file tiny (under 25 lines) and means the AI only reads and writes the styles relevant to what it's working on — not the entire project's stylesheet every time.
+
+See [docs/architecture.md](docs/architecture.md) for the full reasoning.
 
 ---
 
@@ -122,6 +130,8 @@ apparition/
 - **One project. One file to wire everything.** No microservices. No monorepos.
 - **No magic.** Every line of code is readable by a curious non-developer.
 - **Secure by default.** Login is always included. Your API keys never end up where they shouldn't. The AI follows the security rules whether you think to ask or not.
+- **Fast by design.** Server-rendered HTML lands in the browser in one round trip. No JavaScript framework to boot, no API waterfall, no client-side hydration. Pages are lightweight and snappy, which means cheaper hosting — you're serving small HTML responses, not running a front-end build server.
+- **Built to conserve AI tokens.** Styles live with the component they belong to. The central CSS file stays under 25 lines. Data models are flat JSONB — no sprawling schema to paste into every prompt. Files are short by design. Every one of these choices means the AI reads less before it can act, which saves you money on AI usage and keeps responses faster and more accurate.
 - **AI-first, not AI-dependent.** The app works without Copilot. Copilot just makes it faster.
 - **Deploy on day one.** The template is production-ready out of the box.
 
