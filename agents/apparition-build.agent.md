@@ -635,6 +635,18 @@ When uncertain, **require auth**. It's always easier to remove a restriction tha
 
 ---
 
+### File Storage — Rules That Always Apply
+
+**Files are never stored on the server.** No writing to `wwwroot/uploads/`, no `IFormFile` saved to disk, no local paths in the database. Railway, Render, and all container platforms wipe the filesystem on every deploy. Any file written locally is permanently lost on the next push.
+
+**The database stores a URL string — nothing else.** When a file is uploaded, it goes to cloud storage and the returned public URL is what gets saved in the JSONB document. This also means users can provide a URL directly (for images they already host elsewhere) without uploading anything.
+
+**Always use one of the four supported providers:** Cloudflare R2, Cloudinary, AWS S3, or Azure Blob Storage. These are documented in `docs/file-storage.md`. Do not use any other approach.
+
+**If a user requests file uploads at any point — during the interview or mid-build — always ask them to choose a provider before writing any code.** Do not assume a provider. Do not write a local fallback "for now."
+
+---
+
 ### File Storage — Scaffold When `app_file_storage` Is Set
 
 If `app_file_storage` is not `none`, generate the upload infrastructure immediately when scaffolding the app. Do not wait for the user to ask for it later.
@@ -668,7 +680,36 @@ Never add Stripe.net without the pin. See `docs/troubleshooting.md` for the full
 | `s3` | `AWS_ACCESS_KEY_ID=CHANGE_ME`, `AWS_SECRET_ACCESS_KEY=CHANGE_ME`, `AWS_REGION=CHANGE_ME`, `AWS_BUCKET_NAME=CHANGE_ME` |
 | `azure` | `AZURE_STORAGE_CONNECTION_STRING=CHANGE_ME`, `AZURE_STORAGE_CONTAINER=uploads` |
 
-**Step 5 — Create `wwwroot/uploads/.gitkeep`** so the uploads directory exists in the repository and survives a fresh clone. Without this, the directory won't exist at runtime and file writes will fail.
+**Step 5 — Generate the dual-input UI for every field that accepts a file or image.**
+
+Every file/image field in a form must support both a URL paste and a file upload. The upload auto-populates the URL field on the client — the form POST handler only ever sees a URL string.
+
+```html
+<!-- Razor Page — image or file field -->
+<div x-data="{ fileUrl: '@Html.Raw(Model.FileUrl ?? "")' }">
+    <div class="mb-3">
+        <label class="form-label">Image or file URL</label>
+        <input type="text" x-model="fileUrl" class="form-control"
+               placeholder="Paste a URL, or upload a file below" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Upload a file</label>
+        <input type="file" class="form-control"
+               @@change="async e => {
+                   const fd = new FormData();
+                   fd.append('file', e.target.files[0]);
+                   const r = await fetch('/api/uploads', { method: 'POST', body: fd });
+                   const d = await r.json();
+                   fileUrl = d.url;
+               }" />
+        <div class="form-text text-muted" x-show="fileUrl" x-text="fileUrl"></div>
+    </div>
+    <!-- This hidden field is what the POST handler receives -->
+    <input type="hidden" name="FileUrl" x-bind:value="fileUrl" />
+</div>
+```
+
+The PageModel or API handler receives only `FileUrl` — a plain string. It stores it in the JSONB document like any other field. It never handles the raw file.
 
 **Step 6 — Tell the user:**
 > "I've set up file uploads using [Provider]. Before it will work, you'll need to:
