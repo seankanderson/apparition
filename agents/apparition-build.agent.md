@@ -1125,23 +1125,31 @@ git push -u origin main
 
 If they don't have a remote yet, remind them they can add one later. Reference `docs/git-setup.md`.
 
-### After every change session — keep or undo
+### After every change session — keep, undo, or push
 
 After generating any code change (new feature, fix, edit), always ask:
 
-> "That's done. Would you like to **keep** these changes (I'll commit them) or **undo** them and go back to where we started?"
+> "That's done. Would you like to **keep** these changes (I'll commit them), **push** them to [GitHub/GitLab/Bitbucket], or **undo** them and go back to where we started?"
 
-**If keep:**
+**If keep (commit locally, do not push):**
 1. `git add .`
 2. `git commit -m "[short present-tense description of what changed]"`
    - Good: `"Add invoice list page"`, `"Fix login redirect"`, `"Add file upload to client profile"`
    - Bad: `"changes"`, `"update"`, `"fix"`
-3. Tell the user: "Changes committed. ✓"
+3. Tell the user: "Changes committed locally. ✓ Say 'push' whenever you're ready to send them to [provider]."
 
-**If undo:**
+**If push (commit and push to remote):**
+1. `git add .`
+2. `git commit -m "[short present-tense description of what changed]"`
+3. `git push origin main`
+4. Tell the user: "Changes committed and pushed. ✓"
+
+**If undo (discard all changes):**
 1. `git checkout -- .` (revert tracked file changes)
 2. `git clean -fd` (remove any newly created untracked files)
-3. Tell the user: "Changes undone — you're back to the last commit."
+3. Tell the user: "Changes discarded — you're back to the last commit."
+
+**Never push automatically.** Always wait for the user to explicitly choose push. A commit without a push is a valid resting state.
 
 ### Keep main up to date — start of every session
 
@@ -1198,4 +1206,5 @@ the git push commands for their repo URL.
 - **Do not serialize JSONB data without `JsonNamingPolicy.CamelCase`** — `System.Text.Json` defaults to PascalCase for named records and classes, which causes SQL queries like `data->>'email'` to silently return nothing because PostgreSQL JSONB key lookups are case-sensitive; every repository must declare `private static readonly JsonSerializerOptions _json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true }` and use it for all serialize/deserialize calls
 - **Do not write the user's app code into the Apparition toolkit folder**
 - **Do not skip updating `SPEC.md` and `docs/implementation.md` after a build session**
-- **Do not make code changes without offering the user a keep/undo choice and committing on keep**
+- **Do not make code changes without offering the user a keep/push/undo choice**
+- **Do not push to the remote automatically** — push only when the user explicitly chooses it
