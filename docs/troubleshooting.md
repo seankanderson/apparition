@@ -143,6 +143,50 @@ Railway sometimes misdetects the project. Fix:
 
 ---
 
+### Mixed content error — auth redirects use `http://` instead of `https://`
+
+**Symptom:** The browser console shows a mixed content error like:
+```
+Mixed Content: The page at 'https://yourapp.up.railway.app/admin/new' was loaded over HTTPS,
+but requested an insecure resource 'http://yourapp.up.railway.app/Admin/Login?ReturnUrl=...'.
+This request has been blocked.
+```
+The blocked URL is your own Railway domain but with `http://` — not an external service.
+
+**Cause:** Railway terminates SSL at its reverse proxy and forwards requests to the app container over plain HTTP. ASP.NET Core sees the incoming request as `http` and generates `http://` URLs for auth redirects. The browser, which loaded the page over HTTPS, refuses to follow a redirect back to HTTP.
+
+**Fix:** Add `UseForwardedHeaders` to `Program.cs` so the app reads Railway's `X-Forwarded-Proto` header and knows the original scheme was HTTPS.
+
+Add the `using`:
+```csharp
+using Microsoft.AspNetCore.HttpOverrides;
+```
+
+Register options before `builder.Build()`:
+```csharp
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear(); // Railway's proxy is not on the default loopback allowlist
+    options.KnownProxies.Clear();
+});
+```
+
+Call it as the **very first middleware** — before `UseExceptionHandler`, `UseStaticFiles`, and everything else:
+```csharp
+var app = builder.Build();
+app.UseForwardedHeaders(); // ← must be first
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+```
+
+**Separate issue — images or files served over HTTP:** If you see mixed content errors for image URLs (not your own domain, but e.g. an R2 or CDN URL), the cause is different — the env var holding the public URL (e.g. `R2_PUBLIC_URL`) starts with `http://`. Change it to `https://` in Railway's environment variables. The proxy fix above only affects URLs the app generates itself.
+
+---
+
 ## Deployment (Render)
 
 ### Build times out

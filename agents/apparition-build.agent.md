@@ -364,6 +364,47 @@ builder.Services.AddScoped<IDbConnection>(_ => new NpgsqlConnection(ResolveConne
 
 **Why `DATABASE_URL` and not `ConnectionStrings__Default`?** Railway auto-injects `DATABASE_URL` when a PostgreSQL service is linked to an app service. Reading it directly means users never need to manually copy and paste the connection string from one Railway service panel to another — the app picks it up automatically. The fallback to `ConnectionStrings__Default` handles Render, Azure, AWS, and local dev.
 
+### Reverse-Proxy HTTPS — Always Register `UseForwardedHeaders`
+
+Railway and Render terminate SSL at their reverse proxy and forward requests to the app container over plain HTTP. ASP.NET Core sees the incoming scheme as `http` and generates `http://` URLs for auth redirects, HSTS, and anything that reads `Request.Scheme`. The browser, which loaded the page over HTTPS, blocks those `http://` URLs as mixed content.
+
+**Always add these three things to every `Program.cs`:**
+
+**1. Add the `using` at the top:**
+```csharp
+using Microsoft.AspNetCore.HttpOverrides;
+```
+
+**2. Register the options before `builder.Build()`:**
+```csharp
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Railway/Render proxies are not on the default loopback-only allowlist.
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+```
+
+**3. Call `UseForwardedHeaders()` as the very first middleware — before everything else:**
+```csharp
+var app = builder.Build();
+app.UseForwardedHeaders(); // ← must be first
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+// ... rest of middleware
+```
+
+**What breaks without this:**
+- Auth redirects (login page redirect) are generated as `http://` — browsers block them as mixed content
+- `HttpContext.Request.IsHttps` returns `false` even though the user is on HTTPS
+- Any URL built from `Request.Scheme` (e.g. OAuth callbacks, absolute links) uses `http://`
+
+**Note on external resource URLs (e.g. `R2_PUBLIC_URL`):** This fix only affects URLs the app generates itself. Env vars that hold URLs to external resources (R2 images, CDN assets) must already start with `https://` — the proxy middleware cannot change those.
+
 ### `Properties/launchSettings.json` — Always Generate This
 
 Every app gets this file so `dotnet run` works out of the box without any configuration:
