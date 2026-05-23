@@ -674,6 +674,8 @@ Never add Stripe.net without the pin. See `docs/troubleshooting.md` for the full
 - The `catch` returns `Results.Json(new { error = ex.GetType().Name, message = ex.Message }, statusCode: 500)` — **never `Results.Problem()`**. In production, `UseExceptionHandler` middleware intercepts `Results.Problem` and replaces it with a generic 500 page that hides the actual error completely.
 - Required config values are checked with `string.IsNullOrEmpty()` before touching any external service — this surfaces "env var not set" as a descriptive 400 instead of a NullReferenceException.
 
+**R2-specific: always set `UseChunkEncoding = false` on every `PutObjectRequest`.** The AWS SDK defaults to `STREAMING-AWS4-HMAC-SHA256-PAYLOAD-TRAILER` chunked transfer encoding, which R2 does not implement. Without this flag the upload returns a 500 with the message `"STREAMING-AWS4-HMAC-SHA256-PAYLOAD-TRAILER not implemented"`. The template in `docs/file-storage.md` already includes this — do not remove it.
+
 **Step 3 — Add provider registration to `Program.cs`** using the section in `docs/file-storage.md` for the chosen provider.
 
 **Step 4 — Add the env vars to `.env`** with placeholder values:
