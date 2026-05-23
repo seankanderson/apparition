@@ -153,9 +153,13 @@ Start with one table. Add a second table only when you genuinely need:
 }
 ```
 
-**Production** (Railway/Render environment variable):
+**Production — Railway:**
+Railway automatically injects `DATABASE_URL` as a `postgresql://` URI when a PostgreSQL service is linked. The `ResolveConnectionString()` helper in `Program.cs` converts it to ADO.NET format at startup. You do not need to set `ConnectionStrings__Default` on Railway.
+
+**Production — Render / AWS / Azure:**
+Set `ConnectionStrings__Default` to ADO.NET format:
 ```
-ConnectionStrings__Default=postgres://user:password@host:5432/dbname
+ConnectionStrings__Default=Host=...;Port=5432;Database=myapp;Username=postgres;Password=...
 ```
 
 ---

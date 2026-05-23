@@ -39,16 +39,17 @@ Railway auto-detects .NET projects and handles everything including the database
 
 ### Step 3 — Connect the database to your app
 
-1. Click on the PostgreSQL service
-2. Go to the **Connect** tab
-3. Copy the **DATABASE_URL** value
+When you add a PostgreSQL service to your Railway project, Railway automatically injects a `DATABASE_URL` environment variable into your app service. **You do not need to copy or paste the connection string manually** — the app reads `DATABASE_URL` directly.
 
-Then click on your app service, go to **Variables**, and add:
+All you need to add manually is:
 
 ```
-ConnectionStrings__Default = <paste the DATABASE_URL here>
-ASPNETCORE_ENVIRONMENT    = Production
+ASPNETCORE_ENVIRONMENT = Production
 ```
+
+Click on your **app service** → **Variables** tab → **New Variable**, and add just that one variable.
+
+> **Why not `ConnectionStrings__Default`?** Railway's `DATABASE_URL` is a `postgresql://` URI, not ADO.NET format. The scaffolded `Program.cs` includes a `ResolveConnectionString()` helper that converts it automatically. Do not paste the URI as `ConnectionStrings__Default` — it will cause a parse error on startup.
 
 ### Step 4 — Run the schema
 

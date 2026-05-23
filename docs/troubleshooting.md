@@ -47,6 +47,51 @@ Or change the port in `launchSettings.json`.
 
 ## Deployment (Railway)
 
+### App crashes on startup — "Format of the initialization string does not conform to specification starting at index 0"
+
+**Symptom:** The app deploys without a build error but immediately crashes. Railway logs show a connection string parse error mentioning "index 0".
+
+**Cause:** Railway injects the database connection as a `postgresql://` URI (`DATABASE_URL`). ASP.NET Core's `NpgsqlConnection` expects ADO.NET format (`Host=...;Port=...`). If `Program.cs` passes the URI directly to `NpgsqlConnection`, it fails to parse it.
+
+**Fix — for apps generated with the current scaffold:**
+If your `Program.cs` already contains `ResolveConnectionString()`, this should not happen. Check that:
+1. `DATABASE_URL` is being read (not `ConnectionStrings__Default`) — the helper checks `DATABASE_URL` first
+2. The Railway PostgreSQL service is linked to your app service (so `DATABASE_URL` is actually injected)
+
+**Fix — for apps without `ResolveConnectionString()`:**
+Add this helper to `Program.cs` and update the `IDbConnection` registration to use it:
+
+```csharp
+string ResolveConnectionString()
+{
+    var raw = Environment.GetEnvironmentVariable("DATABASE_URL")
+              ?? builder.Configuration.GetConnectionString("Default")
+              ?? throw new InvalidOperationException("No database connection string configured.");
+
+    if (!raw.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) &&
+        !raw.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        return raw;
+
+    var uri      = new Uri(raw);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var host     = uri.Host;
+    var port     = uri.IsDefaultPort ? 5432 : uri.Port;
+    var database = uri.AbsolutePath.TrimStart('/');
+    var username = Uri.UnescapeDataString(userInfo[0]);
+    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+}
+
+// Replace your existing IDbConnection registration with:
+builder.Services.AddScoped<IDbConnection>(_ => new NpgsqlConnection(ResolveConnectionString()));
+```
+
+Then commit, push, and redeploy.
+
+---
+
+
+
 ### Build fails with "not a .NET project"
 
 Railway sometimes misdetects the project. Fix:

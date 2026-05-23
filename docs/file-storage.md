@@ -454,9 +454,9 @@ Download link:
 
 ---
 
-## Environment Variables Reference
+## Environment Variables — Where to Set Them
 
-Add these to Railway or Render's environment variable settings. Locally, they go in your `.env` file.
+File storage credentials must be set in two places: your local `.env` file for development, and your hosting platform's variables UI for production. **The app will crash on startup if these are missing.**
 
 | Provider | Variables needed |
 |----------|-----------------|
@@ -464,3 +464,36 @@ Add these to Railway or Render's environment variable settings. Locally, they go
 | Cloudinary | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
 | AWS S3 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `AWS_BUCKET_NAME` |
 | Azure Blob | `AZURE_STORAGE_CONNECTION_STRING`, `AZURE_STORAGE_CONTAINER` |
+
+### Locally (development)
+
+Open your app's `.env` file and uncomment the lines for your chosen provider. Fill in the real values from your provider's dashboard.
+
+`.env` is gitignored — it never gets committed.
+
+> `.env` requires the `DotNetEnv` NuGet package and `DotNetEnv.Env.Load()` at the top of `Program.cs`. See [environment-variables.md](environment-variables.md) for setup.
+
+### On Railway
+
+1. Open your project → click the **app service** (not the PostgreSQL service)
+2. Go to **Variables** tab → click **New Variable**
+3. Add each variable name and value from the table above
+4. Railway redeploys automatically after you save
+
+For adding many at once: click **Raw Editor**, paste all `KEY=value` lines, click **Update**.
+
+### On Render
+
+1. Open your service → **Environment** (left sidebar)
+2. Click **Add Environment Variable** for each variable
+3. Click **Save Changes** — Render redeploys automatically
+
+For adding many at once: click **Add from .env**, paste your variables, click **Add Variables**.
+
+### On AWS App Runner / Azure App Service
+
+See [environment-variables.md](environment-variables.md) for step-by-step instructions on all four hosting platforms.
+
+---
+
+> **After deploying:** visit the upload page in your live app and test with a real file. If the upload fails, check the platform logs first — the error message will name the missing variable.

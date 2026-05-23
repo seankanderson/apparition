@@ -140,6 +140,7 @@ When scaffolding a new app, copy these files from the Apparition toolkit into a 
     architecture.md
     database.md
     deployment.md
+    environment-variables.md
     file-storage.md
     local-development.md
     git-setup.md
@@ -269,9 +270,17 @@ using (var scope = app.Services.CreateScope())
 }
 ```
 
-**NuGet package required:** `BCrypt.Net-Next` — add to the project:
+**NuGet packages required** — add both to the project:
 ```
 dotnet add package BCrypt.Net-Next
+dotnet add package DotNetEnv
+```
+
+`DotNetEnv` loads the `.env` file so environment variables work locally. Without it, `Environment.GetEnvironmentVariable()` returns null and the admin account is never seeded.
+
+Add this as the **first line** of `Program.cs`, before `var builder = WebApplication.CreateBuilder(args)`:
+```csharp
+DotNetEnv.Env.Load();
 ```
 
 **Security notes to communicate to the user:**
@@ -279,6 +288,45 @@ dotnet add package BCrypt.Net-Next
 - The database stores only the BCrypt hash — never the plain text
 - After first login, they should remove `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` from Railway/Render environment variables
 - Optionally delete `Data/SeedAdmin.cs` and its call in `Program.cs` after the account is confirmed working
+
+### Database Connection Registration — Always Use This Pattern
+
+Every app must register `IDbConnection` using the `ResolveConnectionString()` helper below. This is not optional — it is required for Railway compatibility.
+
+Railway injects a `postgres://` URI as `DATABASE_URL`. ASP.NET Core's NpgsqlConnection expects ADO.NET format (`Host=...;Port=...`). Without this converter, the app crashes on first startup in Railway with a parse error. The helper is transparent locally — an ADO.NET string passes through unchanged.
+
+Add `ResolveConnectionString()` as a local function in `Program.cs` and use it when registering `IDbConnection`:
+
+```csharp
+// At the top of Program.cs, before builder = WebApplication.CreateBuilder(args):
+DotNetEnv.Env.Load();
+
+// Local function — paste this at the bottom of Program.cs outside of any other block:
+string ResolveConnectionString()
+{
+    var raw = Environment.GetEnvironmentVariable("DATABASE_URL")
+              ?? builder.Configuration.GetConnectionString("Default")
+              ?? throw new InvalidOperationException("No database connection string configured.");
+
+    if (!raw.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) &&
+        !raw.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        return raw;
+
+    var uri      = new Uri(raw);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var host     = uri.Host;
+    var port     = uri.IsDefaultPort ? 5432 : uri.Port;
+    var database = uri.AbsolutePath.TrimStart('/');
+    var username = Uri.UnescapeDataString(userInfo[0]);
+    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+}
+
+// IDbConnection registration — always use ResolveConnectionString(), never inline the config call:
+builder.Services.AddScoped<IDbConnection>(_ => new NpgsqlConnection(ResolveConnectionString()));
+```
+
+**Why `DATABASE_URL` and not `ConnectionStrings__Default`?** Railway auto-injects `DATABASE_URL` when a PostgreSQL service is linked to an app service. Reading it directly means users never need to manually copy and paste the connection string from one Railway service panel to another — the app picks it up automatically. The fallback to `ConnectionStrings__Default` handles Render, Azure, AWS, and local dev.
 
 ### `Properties/launchSettings.json` — Always Generate This
 
@@ -588,9 +636,9 @@ Never add Stripe.net without the pin. See `docs/troubleshooting.md` for the full
 
 **Step 6 — Tell the user:**
 > "I've set up file uploads using [Provider]. Before it will work, you'll need to:
-> 1. Create a [Provider] account (see `docs/file-storage.md` for setup steps)
+> 1. Create a [Provider] account (see `.apparition/docs/file-storage.md` for setup steps)
 > 2. Open your `.env` file and replace each `CHANGE_ME` with your real credentials
-> 3. Add those same variables in Railway or Render when you deploy"
+> 3. Set those same variables in your hosting platform before deploying — see `.apparition/docs/environment-variables.md` for the exact steps on Railway, Render, AWS, and Azure"
 
 **Add the `FormOptions` limit** to `Program.cs` and register `IHttpClientFactory` — both are required regardless of provider (see `docs/file-storage.md`).
 
