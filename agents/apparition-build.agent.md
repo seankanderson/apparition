@@ -289,6 +289,39 @@ DotNetEnv.Env.Load();
 - After first login, they should remove `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` from Railway/Render environment variables
 - Optionally delete `Data/SeedAdmin.cs` and its call in `Program.cs` after the account is confirmed working
 
+### Self-Applying Schema — Always Required
+
+**The app must create its own database schema on startup.** Never rely on the user running `schema.sql` manually.
+
+Three things are required every time:
+
+**1. Write `schema.sql` with `IF NOT EXISTS` on every statement** so it is safe to replay on every boot:
+```sql
+CREATE TABLE IF NOT EXISTS documents ( ... );
+CREATE INDEX IF NOT EXISTS idx_documents_type ON documents(type);
+```
+
+**2. Include `schema.sql` in the published output** (add to `.csproj`) so it is present inside the deployed container:
+```xml
+<ItemGroup>
+  <Content Include="schema.sql">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </Content>
+</ItemGroup>
+```
+
+**3. Apply it at startup in `Program.cs`**, before `SeedAdmin.EnsureAsync`:
+```csharp
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<IDbConnection>();
+    var schemaPath = Path.Combine(AppContext.BaseDirectory, "schema.sql");
+    if (File.Exists(schemaPath))
+        await db.ExecuteAsync(await File.ReadAllTextAsync(schemaPath));
+    await SeedAdmin.EnsureAsync(db);
+}
+```
+
 ### Database Connection Registration — Always Use This Pattern
 
 Every app must register `IDbConnection` using the `ResolveConnectionString()` helper below. This is not optional — it is required for Railway compatibility.

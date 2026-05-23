@@ -108,12 +108,28 @@ Railway sometimes misdetects the project. Fix:
 
 ---
 
-### "relation 'documents' does not exist"
+### "relation 'documents' does not exist" (or any table name)
 
-The schema hasn't been run against the production database.
+**First, check whether auto-migration is wired up.** Apps scaffolded with the current toolkit apply `schema.sql` at startup automatically. If the error still appears, one of these is the cause:
 
-1. Go to your Railway PostgreSQL service → **Data → Query**
-2. Paste the contents of `schema.sql` and run it
+1. **`schema.sql` is not in the published output** — check that the `.csproj` contains:
+   ```xml
+   <Content Include="schema.sql">
+     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+   </Content>
+   ```
+   If this line is missing, `schema.sql` exists in the repo but is not present in the deployed container.
+
+2. **`schema.sql` uses `CREATE TABLE` without `IF NOT EXISTS`** — the startup migration runs but fails silently on the second deploy because the table already exists. Change every `CREATE TABLE` and `CREATE INDEX` to use `IF NOT EXISTS`.
+
+3. **Startup migration code is missing from `Program.cs`** — search for `schema.sql` in `Program.cs`. If it's not there, the app never applies it. Add:
+   ```csharp
+   var schemaPath = Path.Combine(AppContext.BaseDirectory, "schema.sql");
+   if (File.Exists(schemaPath))
+       await db.ExecuteAsync(await File.ReadAllTextAsync(schemaPath));
+   ```
+
+**Quick manual fix for any of the above:** Go to your Railway PostgreSQL service → **Data → Query**, paste the contents of `schema.sql`, and run it. Then fix the root cause so it doesn't require manual intervention next time.
 
 ---
 

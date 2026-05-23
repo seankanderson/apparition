@@ -51,14 +51,13 @@ Click on your **app service** → **Variables** tab → **New Variable**, and ad
 
 > **Why not `ConnectionStrings__Default`?** Railway's `DATABASE_URL` is a `postgresql://` URI, not ADO.NET format. The scaffolded `Program.cs` includes a `ResolveConnectionString()` helper that converts it automatically. Do not paste the URI as `ConnectionStrings__Default` — it will cause a parse error on startup.
 
-### Step 4 — Run the schema
-
-1. In your Railway PostgreSQL service, click **Data → Query**
-2. Paste the contents of your `schema.sql` file and run it
-
-### Step 5 — Deploy
+### Step 4 — Deploy
 
 Railway deploys automatically on every push to your `main` branch. Your app is now live.
+
+On the very first startup, the app runs `schema.sql` automatically and creates all tables. You should see no errors in the Railway logs.
+
+> **If you see "relation does not exist" in the logs**, the startup schema migration did not run. This happens in apps scaffolded before auto-migration was added. Fix: go to your Railway PostgreSQL service → **Data → Query**, paste the contents of `schema.sql`, and run it manually. Then redeploy.
 
 **Your URL:** shown on the Railway service card under **Domains**.
 
@@ -108,9 +107,11 @@ EXPOSE 8080
 ENTRYPOINT ["dotnet", "App.dll"]
 ```
 
-### Step 4 — Run the schema
+### Step 4 — Deploy
 
-Use the **Render Shell** tab on your PostgreSQL service to run `schema.sql`.
+Render deploys automatically. On first startup, the app runs `schema.sql` and creates all tables automatically.
+
+> **If tables are missing**, use the **Render Shell** tab on your PostgreSQL service to run `schema.sql` manually, then trigger a new deploy.
 
 ---
 

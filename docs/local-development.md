@@ -114,10 +114,12 @@ PostgreSQL isn't running. Start it:
 
 ### "relation 'documents' does not exist"
 
-You haven't run `schema.sql` yet. Run:
+The schema hasn't been applied to your local database yet. Run:
 ```
 psql -U postgres -d myappname -f schema.sql
 ```
+
+> This should only happen on first setup — the startup auto-migration normally handles this. If it still fails, check that `schema.sql` exists in your app root and that the `.csproj` includes `<Content Include="schema.sql"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>` so the file is present in `bin/Debug/net8.0/` at runtime.
 
 ### "Port 5000 is already in use"
 
