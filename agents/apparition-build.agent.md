@@ -315,6 +315,9 @@ CREATE INDEX IF NOT EXISTS idx_documents_type ON documents(type);
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<IDbConnection>();
+    // AppContext.BaseDirectory is where dotnet publish puts the output files.
+    // Do NOT use Directory.GetCurrentDirectory() — in a container that points to /
+    // or the working directory, not the published binary folder, and schema.sql won't be found.
     var schemaPath = Path.Combine(AppContext.BaseDirectory, "schema.sql");
     if (File.Exists(schemaPath))
         await db.ExecuteAsync(await File.ReadAllTextAsync(schemaPath));
@@ -906,6 +909,7 @@ body { background-color: #0f172a; color: #f1f5f9; }
 - **Security:** All `/api/*` endpoints default to `.RequireAuthorization()`. API keys always in env vars, never in front-end code. Third-party services always proxied through `/Api/`.
 - **Structure:** Single project. Files live in /Pages, /Api, /Data, Program.cs.
 - **Program.cs:** Keep under 60 lines. No complex wiring.
+- **Published output:** Any file the app reads at runtime (e.g. `schema.sql`) must be marked in the `.csproj` so it is copied into the published output. Railway, Render, and all container-based platforms build with `dotnet publish` — files not explicitly marked are not present in the deployed app and will cause runtime failures. Use `<Content Include="filename"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>` for every such file.
 
 ## File Location Rules
 

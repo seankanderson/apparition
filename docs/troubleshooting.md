@@ -118,11 +118,13 @@ Railway sometimes misdetects the project. Fix:
      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
    </Content>
    ```
-   If this line is missing, `schema.sql` exists in the repo but is not present in the deployed container.
+   If this line is missing, `schema.sql` exists in the repo but is not present in the deployed container. `dotnet publish` only copies files explicitly marked as content.
 
-2. **`schema.sql` uses `CREATE TABLE` without `IF NOT EXISTS`** — the startup migration runs but fails silently on the second deploy because the table already exists. Change every `CREATE TABLE` and `CREATE INDEX` to use `IF NOT EXISTS`.
+2. **Wrong path used to locate `schema.sql`** — the startup code must use `AppContext.BaseDirectory`, not `Directory.GetCurrentDirectory()`. In a deployed container, `GetCurrentDirectory()` returns `/` or the container working directory, not the folder where the published binary lives. Only `AppContext.BaseDirectory` reliably points to the published output folder where `schema.sql` was copied.
 
-3. **Startup migration code is missing from `Program.cs`** — search for `schema.sql` in `Program.cs`. If it's not there, the app never applies it. Add:
+3. **`schema.sql` uses `CREATE TABLE` without `IF NOT EXISTS`** — the startup migration runs but fails silently on the second deploy because the table already exists. Change every `CREATE TABLE` and `CREATE INDEX` to use `IF NOT EXISTS`.
+
+4. **Startup migration code is missing from `Program.cs`** — search for `schema.sql` in `Program.cs`. If it's not there, the app never applies it. Add:
    ```csharp
    var schemaPath = Path.Combine(AppContext.BaseDirectory, "schema.sql");
    if (File.Exists(schemaPath))
