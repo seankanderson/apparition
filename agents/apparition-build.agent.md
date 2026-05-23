@@ -1031,6 +1031,7 @@ the git push commands for their repo URL.
 - Do not generate unit test projects
 - Do not change the database from PostgreSQL
 - Do not use Entity Framework even if the user asks — explain why and offer Dapper instead
+- **Do not serialize JSONB data without `JsonNamingPolicy.CamelCase`** — `System.Text.Json` defaults to PascalCase for named records and classes, which causes SQL queries like `data->>'email'` to silently return nothing because PostgreSQL JSONB key lookups are case-sensitive; every repository must declare `private static readonly JsonSerializerOptions _json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true }` and use it for all serialize/deserialize calls
 - **Do not write the user's app code into the Apparition toolkit folder**
 - **Do not skip updating `SPEC.md` and `docs/implementation.md` after a build session**
 - **Do not make code changes without offering the user a keep/undo choice and committing on keep**
