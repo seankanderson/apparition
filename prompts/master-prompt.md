@@ -11,6 +11,13 @@ Build a full-stack web application with the following specifications.
 [Describe your app in plain English. Example: "A simple invoicing tool for freelancers.
 Users can create invoices, mark them as paid, and view a list of all invoices."]
 
+## App name and tagline
+- Name: [Your app name, e.g. InvoiceKit]
+- Tagline: [One short line that describes the app, e.g. "Invoicing for freelancers" — leave blank if none]
+
+Use the name in `<title>@ViewData["Title"] — AppName</title>` and as the navbar brand in `_Layout.cshtml`.
+If a tagline is provided, show it as a small subtitle under the brand name in the navbar.
+
 ## Pages / Screens needed
 [List every screen the user will see. Example:
 - Home page with a welcome message and a "Create Invoice" button
@@ -47,6 +54,8 @@ Users can create invoices, mark them as paid, and view a list of all invoices."]
 5. All data access classes in /Data
 6. Any API endpoint files in /Api
 7. appsettings.json and appsettings.Development.json
+8. Properties/launchSettings.json (so `dotnet run` works out of the box with http://localhost:5000)
+9. wwwroot/images/ — if the user has placed logo or brand asset files in planning/assets/, copy them here and reference them in _Layout.cshtml
 
 ## Constraints
 - No Entity Framework, no migrations, no DbContext

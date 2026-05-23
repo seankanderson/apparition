@@ -14,17 +14,18 @@ Apparition is an **AI Template Starter Kit** for non-technical founders building
 
 ## What to Do Based on What the User Asks
 
-| User says...                                            | What to do                                                                                                  |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| "Build me an app" / "Let's start" / "I have an idea"    | Load `agents/apparition-build.agent.md`, then run the guided interview in `prompts/onboarding-questions.md` |
-| "Add a feature" / "I need a new page" / "Can you add X" | Load `agents/apparition-feature.agent.md`                                                                   |
-| "Deploy" / "How do I go live" / "Set up Railway"        | Load `agents/apparition-deploy.agent.md`                                                                    |
-| "How do I set up my folder" / "Where do things go"      | Read `docs/workspace-setup.md` and explain it                                                               |
-| "How does the database work"                            | Read `docs/database.md`                                                                                     |
-| "Why did you choose this stack"                         | Read `docs/architecture.md`                                                                                 |
-| Any question about git, GitHub, GitLab, Bitbucket       | Read `docs/git-setup.md`                                                                                    |
-| Deployment questions                                    | Read `docs/deployment.md`                                                                                   |
-| Something broke                                         | Read `docs/troubleshooting.md`                                                                              |
+| User says...                                                       | What to do                                                                                                  |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| "Build me an app" / "Let's start" / "I have an idea"               | Load `agents/apparition-build.agent.md`, then run the guided interview in `prompts/onboarding-questions.md` |
+| "Add a feature" / "I need a new page" / "Can you add X"            | Load `agents/apparition-feature.agent.md`                                                                   |
+| "Deploy" / "How do I go live" / "Set up Railway"                   | Load `agents/apparition-deploy.agent.md`                                                                    |
+| "How do I run it locally" / "How do I test locally" / "dotnet run" | Read `docs/local-development.md` and guide through setup                                                    |
+| "How do I set up my folder" / "Where do things go"                 | Read `docs/workspace-setup.md` and explain it                                                               |
+| "How does the database work"                                       | Read `docs/database.md`                                                                                     |
+| "Why did you choose this stack"                                    | Read `docs/architecture.md`                                                                                 |
+| Any question about git, GitHub, GitLab, Bitbucket                  | Read `docs/git-setup.md`                                                                                    |
+| Deployment questions                                               | Read `docs/deployment.md`                                                                                   |
+| Something broke                                                    | Read `docs/troubleshooting.md`                                                                              |
 
 **Always confirm** which folder you are working in before writing any files. Apparition is a toolkit — the user's app is a sibling folder. Never write generated app code into the Apparition toolkit folder.
 
@@ -43,15 +44,16 @@ Apparition is an **AI Template Starter Kit** for non-technical founders building
 ### `docs/`
 Reference documentation. Read before explaining anything to the user.
 
-| File                      | Purpose                                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------- |
-| `docs/architecture.md`    | Every stack decision and why it was made. Read this before suggesting any technology. |
-| `docs/database.md`        | PostgreSQL + JSONB patterns with Dapper code examples.                                |
-| `docs/deployment.md`      | Railway and Render step-by-step deployment guides.                                    |
-| `docs/git-setup.md`       | GitHub, GitLab, and Bitbucket account and repo setup.                                 |
-| `docs/workspace-setup.md` | How to organise the parent folder so both the toolkit and the user's app are visible. |
-| `docs/customization.md`   | How to adapt the template for a specific use case.                                    |
-| `docs/troubleshooting.md` | Common errors and how to fix them.                                                    |
+| File                        | Purpose                                                                                               |
+| --------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `docs/local-development.md` | Step-by-step guide to installing .NET SDK + PostgreSQL and running the app locally with `dotnet run`. |
+| `docs/architecture.md`      | Every stack decision and why it was made. Read this before suggesting any technology.                 |
+| `docs/database.md`          | PostgreSQL + JSONB patterns with Dapper code examples.                                                |
+| `docs/deployment.md`        | Railway and Render step-by-step deployment guides.                                                    |
+| `docs/git-setup.md`         | GitHub, GitLab, and Bitbucket account and repo setup.                                                 |
+| `docs/workspace-setup.md`   | How to organise the parent folder so both the toolkit and the user's app are visible.                 |
+| `docs/customization.md`     | How to adapt the template for a specific use case.                                                    |
+| `docs/troubleshooting.md`   | Common errors and how to fix them.                                                                    |
 
 ### `prompts/`
 AI prompts that work as raw copy-paste (ChatGPT, Claude, etc.) or as agent instructions.

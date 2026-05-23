@@ -166,7 +166,7 @@ Ask the user:
 
 ---
 
-## STEP 3 — App Name [`apparition_collect_name`]
+## STEP 3 — App Name & Tagline [`apparition_collect_name`]
 
 Ask the user:
 
@@ -176,6 +176,16 @@ If they say no or aren't sure, suggest:
 > "No problem — I'll use a placeholder. You can rename everything later in one step."
 
 **Store as:** `app_name` (use `MyApp` as default if none given)
+
+Then ask:
+
+> "Got it. Do you have a short tagline or subtitle for it? Something like 'Invoicing for freelancers' or 'Track your jobs in one place'.
+> This shows up in the header of your app and helps visitors immediately understand what it does.
+> Say 'skip' if you'd rather leave it blank."
+
+**Why this matters:** The tagline is shown in the site's navbar beneath the app name and in browser tab titles. It also helps the AI write page copy that matches the app's tone.
+
+**Store as:** `app_tagline` (empty string if skipped)
 
 ---
 
@@ -365,19 +375,24 @@ Ask the user:
 
 **Store as:** `admin_email`
 
-Then ask:
+Then tell the user:
 
-> "And choose a password for that account.
+> "Got it. I'll generate a `.env` file in your app folder with your email pre-filled and a placeholder for your password.
+> When the file is ready, open it and replace `CHANGE_ME` with whatever password you want to use.
 >
-> Just a heads-up: this password will pass through this chat session to generate your app files. Use something you're comfortable sharing temporarily — you can change it any time after your first login."
+> **Don't send your password here** — type it directly into the file. That way it never passes through this chat."
 
-**Store as:** `admin_password`
+**Do NOT ask for the password.** Generate `.env` with a placeholder value:
+```
+SEED_ADMIN_EMAIL=their@email.com
+SEED_ADMIN_PASSWORD=CHANGE_ME
+```
 
-**What happens with these values:**
-- They will be written into a local `.env` file (which is gitignored — never committed)
-- The app reads them as environment variables and creates your admin account on first startup
-- For production (Railway / Render), you'll set these same two values as environment variables in your hosting dashboard — once your account is created, you can delete them
-- After your first successful login, you can delete `Data/SeedAdmin.cs` entirely
+**What happens next:**
+- The user opens `.env` and replaces `CHANGE_ME` with their chosen password
+- The app reads both values as environment variables and creates the admin account on first startup
+- For production (Railway / Render), they set these same two values as environment variables in the hosting dashboard
+- After their first successful login they can delete `Data/SeedAdmin.cs` entirely
 
 ---
 
@@ -387,7 +402,7 @@ Once all steps are complete, summarize back to the user:
 
 > "Here's what I'm going to build for you:
 >
-> **App:** [app_name]
+> **App:** [app_name][app_tagline — show as ' — tagline' if set, omit if empty]
 > **What it does:** [app_idea]
 > **Users:** [app_audience description]
 > **Pages:** [list of features]
@@ -414,6 +429,12 @@ Build a full-stack web application with the following specifications.
 ## App name
 [app_name]
 
+## App tagline
+[app_tagline — leave blank if none provided]
+
+Use the app name in `<title>@ViewData["Title"] — [app_name]</title>` and as the navbar brand.
+If a tagline is provided, show it as a small muted subtitle beneath the brand in the navbar.
+
 ## What the app does
 [app_idea]
 
@@ -437,9 +458,11 @@ Health checks (`/api/health`) are the typical exception.
 
 ## First admin account
 Email: [admin_email]
-Password: stored in `.env` as `SEED_ADMIN_PASSWORD` — do NOT hardcode in source files
+Password: the user will fill this in directly — generate `.env` with `SEED_ADMIN_PASSWORD=CHANGE_ME` as a placeholder.
+Do NOT use a password value from the chat. Do NOT ask the user for their password.
 Generate `Data/SeedAdmin.cs` that reads from environment variables and seeds on first startup.
-Generate `.env` pre-populated with `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.
+Generate `.env` with `SEED_ADMIN_EMAIL=[admin_email]` and `SEED_ADMIN_PASSWORD=CHANGE_ME`.
+After generating, tell the user: "Open the `.env` file in your app folder and replace `CHANGE_ME` with your chosen password before running the app."
 Add `Data/SeedAdmin.cs` to the OUTPUT REQUIRED list.
 
 ## Data the app stores
@@ -493,8 +516,10 @@ individual `.cshtml` files for styles that only apply to one page.
 7. appsettings.json + appsettings.Development.json
 8. .env file pre-populated with SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD
 9. wwwroot/css/site.css (Bootstrap variable overrides only, under 25 lines)
-10. Git initialization commands
-11. Deployment environment variable list (including the two seed variables)
+10. Properties/launchSettings.json so `dotnet run` starts on http://localhost:5000
+11. If any files are found in planning/assets/, copy them to wwwroot/images/ and reference the logo in _Layout.cshtml
+12. Git initialization commands
+13. Deployment environment variable list (including the two seed variables)
 ```
 
 ---
@@ -508,7 +533,7 @@ individual `.cshtml` files for styles that only apply to one page.
 > ```
 > apparition_collect_idea       → { app_idea: string, app_current_solution: string, app_workflow: string }
 > apparition_collect_audience   → { app_audience: "internal"|"public"|"both" }
-> apparition_collect_name       → { app_name: string }
+> apparition_collect_name       → { app_name: string, app_tagline: string }
 > apparition_collect_features    → { app_features: string[], app_interactivity: "none"|"some"|"heavy" }
 > apparition_collect_auth       → { app_auth: "admin_only"|"full" } apparition_collect_style      → { app_vibe: "professional"|"bold"|"warm"|"dark"|"minimal", app_brand_color: string, app_background: "light"|"dark"|"auto" }> apparition_collect_data       → { app_data: { entity: string, fields: string[] }[] }
 > apparition_collect_git        → { git_provider: string, git_repo_url: string }

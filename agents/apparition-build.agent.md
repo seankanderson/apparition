@@ -63,13 +63,21 @@ dev\                        ← parent folder opened in VS Code
 2. Create the app folder as a sibling of `apparition\`, never inside it
 3. Create a `planning/` folder in the app root and tell the user:
    > "I've created a `planning/` folder. Drop any notes, spreadsheets, copied AI responses, or rough ideas in there as text or markdown files. I'll read them at the start of every session — the more context you give me, the better the results."
-4. Tell the user to open VS Code at the parent folder so both are visible
-5. If the user seems confused, reference `docs/workspace-setup.md`
-6. **Generate a `.gitignore`** (see below)
-7. **Seed the `.apparition/` folder** with toolkit copies (see below)
-8. **Offer a VS Code window color** (see below)
+4. Create a `planning/assets/` subfolder and tell the user:
+   > "I've also created a `planning/assets/` folder. Drop your logo, brand images, screenshots, or any visual files in there. At the start of each session I'll scan for them and wire any logo I find directly into your app's header."
+5. Tell the user to open VS Code at the parent folder so both are visible
+6. If the user seems confused, reference `docs/workspace-setup.md`
+7. **Generate a `.gitignore`** (see below)
+8. **Seed the `.apparition/` folder** with toolkit copies (see below)
+9. **Offer a VS Code window color** (see below)
 
 **When files already exist:** Use `file_search` to confirm whether you're working in the Apparition folder or the user's app folder before writing anything.
+
+**At the start of every session on an existing app:**
+1. Use `file_search` to scan `planning/assets/` for image files (`.png`, `.svg`, `.jpg`, `.ico`, `.webp`).
+   - If new files are found that aren't already referenced in `_Layout.cshtml`, tell the user and offer to wire them in.
+   - Common pattern: a `logo.png` or `logo.svg` in assets — copy it to `wwwroot/images/` and add `<img src="~/images/logo.png" ...>` to the navbar brand.
+2. Use `file_search` to scan `planning/` for any `.md` or `.txt` notes files and read them as context before responding.
 
 ---
 
@@ -130,6 +138,7 @@ When scaffolding a new app, copy these files from the Apparition toolkit into a 
     architecture.md
     database.md
     deployment.md
+    local-development.md
     git-setup.md
     workspace-setup.md
     troubleshooting.md
@@ -189,11 +198,11 @@ When the user has provided `admin_email` and `admin_password` during the intervi
 
 ```
 SEED_ADMIN_EMAIL=their@email.com
-SEED_ADMIN_PASSWORD=theirpassword
+SEED_ADMIN_PASSWORD=CHANGE_ME
 ```
 
 Tell the user:
-> "I've created a `.env` file with your login credentials. This file is gitignored — it will never be uploaded to GitHub or your hosting provider. You'll set these same two values as environment variables in Railway or Render for your first production deploy."
+> "I've created a `.env` file with your email pre-filled. **Open that file and replace `CHANGE_ME` with your chosen password before you run the app** — type it directly into the file rather than sending it through chat."
 
 #### `Data/SeedAdmin.cs`
 
@@ -266,6 +275,67 @@ dotnet add package BCrypt.Net-Next
 - The database stores only the BCrypt hash — never the plain text
 - After first login, they should remove `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` from Railway/Render environment variables
 - Optionally delete `Data/SeedAdmin.cs` and its call in `Program.cs` after the account is confirmed working
+
+### `Properties/launchSettings.json` — Always Generate This
+
+Every app gets this file so `dotnet run` works out of the box without any configuration:
+
+```json
+{
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "",
+      "applicationUrl": "http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
+
+Tell the user:
+> "I've added a `launchSettings.json` file. To run your app locally, open a terminal in your app folder and type: `dotnet run`
+> Then open http://localhost:5000 in your browser."
+
+---
+
+### Local Development Prerequisites — Check and Guide
+
+After scaffolding, always check whether the user can run the app locally.
+Use `run_in_terminal` to verify required tools are installed.
+
+**Step 1 — Check .NET SDK:**
+```
+dotnet --version
+```
+- If this returns `8.x.x` or higher: all good.
+- If the command fails or returns a version below 8: tell the user they need to install it.
+  - Windows: `winget install Microsoft.DotNet.SDK.8`
+  - Mac: `brew install --cask dotnet-sdk` or point them to https://dot.net/download
+  - After install, they must close and reopen their terminal.
+
+**Step 2 — Check PostgreSQL:**
+```
+psql --version
+```
+- If this returns a version: PostgreSQL is installed. Guide them to create a local database:
+  ```
+  psql -U postgres -c "CREATE DATABASE myappname;"
+  psql -U postgres -d myappname -f schema.sql
+  ```
+- If the command fails: PostgreSQL is not installed. Options:
+  - Windows: https://www.postgresql.org/download/windows/ — download the installer
+  - Mac: `brew install postgresql@16` then `brew services start postgresql@16`
+  - Cloud-only path: remind them they can skip local PostgreSQL entirely and deploy to Railway first — Railway provides a free PostgreSQL database automatically.
+
+**Offer the cloud-only path if local setup is too complex:**
+> "If installing PostgreSQL feels like too much right now, there's a simpler option: we can skip local testing and deploy straight to Railway. Railway gives you a free PostgreSQL database automatically, and you can test your app live in a browser within minutes. Want to do that instead?"
+
+Reference `docs/local-development.md` for the full setup guide.
 
 ---
 
