@@ -527,6 +527,138 @@ Live search (filter as user types):
 
 ---
 
+## CSS Architecture — Bootstrap + Scoped Styles
+
+Every app gets **Bootstrap 5 via CDN** for the responsive grid, components, and baseline styling.
+Alongside it, a minimal `wwwroot/css/site.css` holds only global brand overrides.
+Everything else lives close to where it is used.
+
+### Standard `_Layout.cshtml` — always generate this
+
+Replace `AppName` with the actual app name throughout:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — AppName</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <nav class="navbar navbar-expand-md navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold" asp-page="/Index">AppName</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav ms-auto">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <li class="nav-item">
+                            <span class="nav-link text-white-50">@User.Identity.Name</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Logout">Log out</a>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-page="/Login">Log in</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container pb-5">
+        @RenderBody()
+    </main>
+
+    <footer class="border-top py-3 mt-5">
+        <div class="container text-center text-muted small">
+            &copy; @DateTime.Now.Year AppName
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+```
+
+If `app_interactivity` is `some` or `heavy`, add Alpine.js before the closing `</body>` tag:
+```html
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+```
+
+### `wwwroot/css/site.css` — global brand overrides only
+
+`site.css` must stay **under 25 lines**. It contains only Bootstrap CSS custom property overrides
+that are truly global: brand colors, link colors, and body background for dark mode.
+
+**Never add page-specific styles to site.css.** If a style only applies to one page or component,
+put it in a `@section Styles` block inside that page's `.cshtml` file.
+
+Page-scoped style pattern (inside any `.cshtml` file):
+```cshtml
+@section Styles {
+<style>
+    .invoice-row.overdue { color: var(--bs-danger); }
+    .status-badge { font-size: 0.75rem; }
+</style>
+}
+```
+
+### Vibe → color mapping
+
+Use `app_brand_color` if the user provided one (convert color descriptions to a hex value).
+Fall back to these defaults:
+
+| `app_vibe` | Default primary | RGB | Notes |
+|-----------|----------------|-----|-------|
+| `professional` | `#2563eb` | `37, 99, 235` | Trustworthy blue |
+| `bold` | `#f97316` | `249, 115, 22` | Energetic orange |
+| `warm` | `#d97706` | `217, 119, 6` | Amber / earthy |
+| `dark` | `#6366f1` | `99, 102, 241` | Indigo — pops on dark bg |
+| `minimal` | `#18181b` | `24, 24, 27` | Near-black, monochrome |
+
+### `site.css` examples
+
+**Light background:**
+```css
+/* AppName — brand overrides */
+:root {
+  --bs-primary: #2563eb;
+  --bs-primary-rgb: 37, 99, 235;
+  --bs-link-color: #2563eb;
+  --bs-link-hover-color: #1d4ed8;
+}
+```
+
+**Dark background:**
+```css
+/* AppName — brand overrides */
+:root {
+  --bs-primary: #6366f1;
+  --bs-primary-rgb: 99, 102, 241;
+  --bs-link-color: #818cf8;
+  --bs-link-hover-color: #a5b4fc;
+  --bs-body-bg: #0f172a;
+  --bs-body-color: #f1f5f9;
+}
+body { background-color: #0f172a; color: #f1f5f9; }
+.border-top { border-color: #334155 !important; }
+```
+
+---
+
 ## Stack Rules — NEVER violate these
 
 - **Frontend:** Razor Pages for all server-rendered pages. Alpine.js via CDN `<script>` tag for reactive interactions. No React, Vue, Blazor, HTMX. No JS build tooling.

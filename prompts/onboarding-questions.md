@@ -235,7 +235,41 @@ Every Apparition app includes authentication — at minimum, a secure admin acco
 
 ---
 
-## STEP 6 — Data the App Stores [`apparition_collect_data`]
+## STEP 6 — Look & Feel [`apparition_collect_style`]
+
+Ask the user:
+
+> "Almost done — this one's fun. What vibe should your app give off?
+>
+> a) **Professional & Clean** — calm, trustworthy, suits business and admin tools
+> b) **Bold & Energetic** — punchy, high-contrast, suits marketplaces and active apps
+> c) **Warm & Friendly** — approachable, earthy, suits service businesses and communities
+> d) **Dark & Focused** — sleek, modern, low-light, suits productivity and tech tools
+> e) **Minimal & Modern** — ultra-clean, near-white, understated, suits premium or portfolio apps"
+
+**Store as:** `app_vibe` (`professional` | `bold` | `warm` | `dark` | `minimal`)
+
+Then ask:
+
+> "Do you have a main brand colour?
+> You can describe it ('deep teal', 'warm orange', 'a blue like Stripe'), paste a hex code like `#2563eb`, or say 'no preference' and I'll choose one that fits your vibe."
+
+**Store as:** `app_brand_color` (hex code, colour description, or `no preference`)
+
+Then ask:
+
+> "Light or dark background?
+> a) **Light** — white or off-white background, dark text (the safe default)
+> b) **Dark** — near-black background, light text
+> c) **Let you decide** — I'll match whatever fits the vibe best"
+
+**Store as:** `app_background` (`light` | `dark` | `auto`)
+
+Then proceed to STEP 7.
+
+---
+
+## STEP 7 — Data the App Stores [`apparition_collect_data`]
 
 Ask the user:
 
@@ -255,7 +289,7 @@ Ask the user:
 
 ---
 
-## STEP 7 — Git Account Setup [`apparition_collect_git`]
+## STEP 8 — Git Account Setup [`apparition_collect_git`]
 
 Ask the user:
 
@@ -308,7 +342,7 @@ Ask the user:
 
 ---
 
-## STEP 8 — Deployment Target [`apparition_collect_hosting`]
+## STEP 9 — Deployment Target [`apparition_collect_hosting`]
 
 Ask the user:
 
@@ -321,7 +355,7 @@ Ask the user:
 
 ---
 
-## STEP 9 — First Login Account [`apparition_collect_admin`]
+## STEP 10 — First Login Account [`apparition_collect_admin`]
 
 Ask the user:
 
@@ -347,7 +381,7 @@ Then ask:
 
 ---
 
-## STEP 10 — Confirm and Build [`apparition_synthesize`]
+## STEP 11 — Confirm and Build [`apparition_synthesize`]
 
 Once all steps are complete, summarize back to the user:
 
@@ -358,6 +392,7 @@ Once all steps are complete, summarize back to the user:
 > **Users:** [app_audience description]
 > **Pages:** [list of features]
 > **Login:** [yes/no/admin]
+> **Look & Feel:** [app_vibe] vibe · [app_brand_color] · [app_background] background
 > **Data:** [list of entities and fields]
 > **Git:** [git_provider] → [git_repo_url]
 > **Hosting:** [app_hosting]
@@ -426,6 +461,20 @@ Add `Data/SeedAdmin.cs` to the OUTPUT REQUIRED list.
 - NO API keys in front-end code — third-party services called from Minimal API proxy endpoints only
 - Third-party API keys live in environment variables, never in committed source files
 
+## Styling
+
+Vibe: [app_vibe]
+Brand color: [app_brand_color]
+Background: [app_background]
+
+Use Bootstrap 5 via CDN in `Pages/Shared/_Layout.cshtml`.
+Generate `wwwroot/css/site.css` with only Bootstrap CSS custom property overrides that
+match the vibe, brand color, and background preference. Keep site.css under 25 lines.
+Include only truly global overrides: `--bs-primary`, `--bs-primary-rgb`, `--bs-link-color`,
+and body background/color for dark mode if requested.
+Do NOT put page-specific styles in site.css — use `@section Styles` blocks inside
+individual `.cshtml` files for styles that only apply to one page.
+
 ## Git
 - Provider: [git_provider]
 - Repository URL: [git_repo_url]
@@ -443,8 +492,9 @@ Add `Data/SeedAdmin.cs` to the OUTPUT REQUIRED list.
 6. All /Api endpoint files
 7. appsettings.json + appsettings.Development.json
 8. .env file pre-populated with SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD
-9. Git initialization commands
-10. Deployment environment variable list (including the two seed variables)
+9. wwwroot/css/site.css (Bootstrap variable overrides only, under 25 lines)
+10. Git initialization commands
+11. Deployment environment variable list (including the two seed variables)
 ```
 
 ---
@@ -460,8 +510,7 @@ Add `Data/SeedAdmin.cs` to the OUTPUT REQUIRED list.
 > apparition_collect_audience   → { app_audience: "internal"|"public"|"both" }
 > apparition_collect_name       → { app_name: string }
 > apparition_collect_features    → { app_features: string[], app_interactivity: "none"|"some"|"heavy" }
-> apparition_collect_auth       → { app_auth: "admin_only"|"full" }
-> apparition_collect_data       → { app_data: { entity: string, fields: string[] }[] }
+> apparition_collect_auth       → { app_auth: "admin_only"|"full" } apparition_collect_style      → { app_vibe: "professional"|"bold"|"warm"|"dark"|"minimal", app_brand_color: string, app_background: "light"|"dark"|"auto" }> apparition_collect_data       → { app_data: { entity: string, fields: string[] }[] }
 > apparition_collect_git        → { git_provider: string, git_repo_url: string }
 > apparition_collect_hosting    → { app_hosting: "railway"|"render"|"local" }
 > apparition_collect_admin      → { admin_email: string, admin_password: string }

@@ -82,15 +82,16 @@ Agent definition files. Load the relevant one based on what the user needs.
 
 ## Stack — Follow These Rules Exactly
 
-| Layer               | Technology                            | Rule                                                                  |
-| ------------------- | ------------------------------------- | --------------------------------------------------------------------- |
-| Frontend — SSR      | Razor Pages (.cshtml)                 | No React, no Vue, no Blazor, no HTMX                                  |
-| Frontend — Reactive | Alpine.js via CDN                     | One `<script>` tag only — no npm, no build step                       |
-| Backend             | ASP.NET Core Minimal API (.NET 8)     | No MVC controllers                                                    |
-| Database            | PostgreSQL + JSONB                    | Use the `documents` table; no new tables without strong justification |
-| ORM                 | Dapper                                | Never Entity Framework                                                |
-| Auth                | ASP.NET cookie auth                   | Always included. No JWT, no Auth0, no third-party identity            |
-| Hosting             | Railway (primary) · Render (fallback) |                                                                       |
+| Layer               | Technology                            | Rule                                                                                                                                                                         |
+| ------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend — SSR      | Razor Pages (.cshtml)                 | No React, no Vue, no Blazor, no HTMX                                                                                                                                         |
+| Frontend — Reactive | Alpine.js via CDN                     | One `<script>` tag only — no npm, no build step                                                                                                                              |
+| Frontend — Styling  | Bootstrap 5 via CDN                   | Always included. `site.css` = brand color overrides only (under 25 lines). Page-specific styles go in `@section Styles` blocks inside `.cshtml` files — never in `site.css`. |
+| Backend             | ASP.NET Core Minimal API (.NET 8)     | No MVC controllers                                                                                                                                                           |
+| Database            | PostgreSQL + JSONB                    | Use the `documents` table; no new tables without strong justification                                                                                                        |
+| ORM                 | Dapper                                | Never Entity Framework                                                                                                                                                       |
+| Auth                | ASP.NET cookie auth                   | Always included. No JWT, no Auth0, no third-party identity                                                                                                                   |
+| Hosting             | Railway (primary) · Render (fallback) |                                                                                                                                                                              |
 
 **Never suggest an alternative to any of these.** If a deviation is genuinely necessary, flag it explicitly before implementing and explain why.
 

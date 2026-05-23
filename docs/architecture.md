@@ -67,6 +67,34 @@ Razor Pages handles the majority of interactions well. When a specific page need
 
 ---
 
+### CSS / Styling: Bootstrap 5 + Scoped Overrides
+
+**Chosen because:**
+- Bootstrap 5 works fully via CDN — no build step, no npm, zero configuration
+- Every AI model generates correct Bootstrap markup reliably
+- Responsive grid (`col-md-6`, `col-lg-4`, etc.) is built in and well understood
+- Rich component library (navbar, cards, modals, tables, forms, alerts) covers everything a first app needs
+- CSS custom properties allow complete rebranding from a handful of variable overrides
+
+**Rejected alternatives:**
+
+| Approach                | Why rejected                                                                                              |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| Tailwind CSS            | CDN "Play" version is development-only; production build requires a build step — breaks the no-build rule |
+| Custom CSS from scratch | AI-generated bespoke CSS is inconsistent and hard to maintain across sessions                             |
+| No framework            | Apps look unfinished without a baseline; non-technical founders care deeply about appearance              |
+
+**The CSS budget rule:**
+
+Every generated app has two and only two CSS concerns:
+
+1. **`wwwroot/css/site.css`** — Bootstrap CSS custom property overrides only (brand colors, dark mode body colors). Stays under 25 lines. Contains nothing page-specific.
+2. **`@section Styles` blocks inside `.cshtml` files** — any styling that only applies to one page or component lives in that file. It does not go in `site.css`.
+
+This keeps token usage low, makes each page self-contained, and avoids the CSS sprawl that makes AI generation unreliable over time.
+
+---
+
 ### Backend: ASP.NET Core Minimal API (.NET 8)
 
 **Chosen because:**
