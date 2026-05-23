@@ -44,6 +44,7 @@ Add cookie-based authentication to my existing ASP.NET Core Razor Pages app.
 - Do not use JWT tokens
 - Keep everything in the existing single project
 - Follow the existing Dapper + JSONB pattern
+- Email lookups must be case-insensitive: use `lower(data->>'email') = lower(@email)` in all SQL queries that find a user by email
 ```
 
 ---

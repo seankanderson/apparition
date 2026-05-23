@@ -236,7 +236,7 @@ public static class SeedAdmin
             return; // env vars not set — skip silently
 
         var exists = await db.ExecuteScalarAsync<bool>(
-            "SELECT EXISTS(SELECT 1 FROM documents WHERE type = 'user' AND data->>'email' = @email)",
+            "SELECT EXISTS(SELECT 1 FROM documents WHERE type = 'user' AND lower(data->>'email') = lower(@email))",
             new { email });
 
         if (!exists)
