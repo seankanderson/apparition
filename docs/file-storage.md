@@ -133,12 +133,14 @@ public static class UploadsApi
                 using var stream = file.OpenReadStream();
                 // R2 does not support per-object ACLs — public access is set at the bucket level.
                 // Do NOT add CannedACL; R2 rejects it with AccessControlListNotSupported.
+                // R2 also does not support aws-chunked transfer encoding — UseChunkEncoding must be false.
                 await s3.PutObjectAsync(new PutObjectRequest
                 {
-                    BucketName  = bucket,
-                    Key         = key,
-                    InputStream = stream,
-                    ContentType = file.ContentType
+                    BucketName       = bucket,
+                    Key              = key,
+                    InputStream      = stream,
+                    ContentType      = file.ContentType,
+                    UseChunkEncoding = false
                 });
             }
             catch (Exception ex)
