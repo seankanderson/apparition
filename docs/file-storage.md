@@ -22,12 +22,12 @@ This means you cannot store uploaded files on the server itself. If you do, they
 
 ## Choose a Provider
 
-| Provider | Free tier | Best for | Complexity |
-|----------|-----------|----------|------------|
-| **Cloudflare R2** | 10 GB storage, no egress fees | General files, documents, images | Low |
-| **Cloudinary** | 25 credits/month | Images — auto-resize, optimize, transform | Low |
-| **AWS S3** | 5 GB for 12 months (then paid) | If you already have AWS | Medium |
-| **Azure Blob Storage** | 5 GB for 12 months (then paid) | If you already have Azure | Medium |
+| Provider               | Free tier                      | Best for                                  | Complexity |
+| ---------------------- | ------------------------------ | ----------------------------------------- | ---------- |
+| **Cloudflare R2**      | 10 GB storage, no egress fees  | General files, documents, images          | Low        |
+| **Cloudinary**         | 25 credits/month               | Images — auto-resize, optimize, transform | Low        |
+| **AWS S3**             | 5 GB for 12 months (then paid) | If you already have AWS                   | Medium     |
+| **Azure Blob Storage** | 5 GB for 12 months (then paid) | If you already have Azure                 | Medium     |
 
 **Not sure?** Pick Cloudflare R2 for documents and mixed files, or Cloudinary if your app is primarily image-focused (profile photos, product images, galleries).
 
@@ -510,12 +510,12 @@ Download link:
 
 File storage credentials must be set in two places: your local `.env` file for development, and your hosting platform's variables UI for production. **The app will crash on startup if these are missing.**
 
-| Provider | Variables needed |
-|----------|-----------------|
+| Provider      | Variables needed                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------- |
 | Cloudflare R2 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL` |
-| Cloudinary | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
-| AWS S3 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `AWS_BUCKET_NAME` |
-| Azure Blob | `AZURE_STORAGE_CONNECTION_STRING`, `AZURE_STORAGE_CONTAINER` |
+| Cloudinary    | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`                         |
+| AWS S3        | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `AWS_BUCKET_NAME`                  |
+| Azure Blob    | `AZURE_STORAGE_CONNECTION_STRING`, `AZURE_STORAGE_CONTAINER`                                   |
 
 ### Locally (development)
 
