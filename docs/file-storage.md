@@ -115,22 +115,41 @@ public static class UploadsApi
     {
         app.MapPost("/api/uploads", async (IFormFile file, IAmazonS3 s3, IConfiguration config) =>
         {
+            // Validate config before touching external services
+            var bucket    = config["R2_BUCKET_NAME"];
+            var publicUrl = config["R2_PUBLIC_URL"];
+            var accountId = config["R2_ACCOUNT_ID"];
+            if (string.IsNullOrEmpty(bucket))    return Results.BadRequest("Server misconfiguration: R2_BUCKET_NAME not set.");
+            if (string.IsNullOrEmpty(publicUrl)) return Results.BadRequest("Server misconfiguration: R2_PUBLIC_URL not set.");
+            if (string.IsNullOrEmpty(accountId)) return Results.BadRequest("Server misconfiguration: R2_ACCOUNT_ID not set.");
+
             if (file == null || file.Length == 0) return Results.BadRequest("No file provided.");
             if (file.Length > 10 * 1024 * 1024) return Results.BadRequest("File too large. Maximum 10MB.");
 
             var key = $"uploads/{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-            using var stream = file.OpenReadStream();
 
-            await s3.PutObjectAsync(new PutObjectRequest
+            try
             {
-                BucketName = config["R2_BUCKET_NAME"],
-                Key = key,
-                InputStream = stream,
-                ContentType = file.ContentType,
-                CannedACL = S3CannedACL.PublicRead
-            });
+                using var stream = file.OpenReadStream();
+                // R2 does not support per-object ACLs — public access is set at the bucket level.
+                // Do NOT add CannedACL; R2 rejects it with AccessControlListNotSupported.
+                await s3.PutObjectAsync(new PutObjectRequest
+                {
+                    BucketName  = bucket,
+                    Key         = key,
+                    InputStream = stream,
+                    ContentType = file.ContentType
+                });
+            }
+            catch (Exception ex)
+            {
+                // Return the raw error — do NOT use Results.Problem() here.
+                // In production, UseExceptionHandler middleware intercepts Problem responses
+                // and replaces them with a generic 500 page, hiding the actual error.
+                return Results.Json(new { error = ex.GetType().Name, message = ex.Message }, statusCode: 500);
+            }
 
-            return Results.Ok(new { url = $"{config["R2_PUBLIC_URL"]}/{key}" });
+            return Results.Ok(new { url = $"{publicUrl}/{key}" });
         })
         .RequireAuthorization()
         .DisableAntiforgery();
@@ -194,19 +213,27 @@ public static class UploadsApi
             if (file == null || file.Length == 0) return Results.BadRequest("No file provided.");
             if (file.Length > 10 * 1024 * 1024) return Results.BadRequest("File too large. Maximum 10MB.");
 
-            await using var stream = file.OpenReadStream();
-            var uploadParams = new ImageUploadParams
+            try
             {
-                File = new FileDescription(file.FileName, stream),
-                Folder = "uploads",
-                UniqueFilename = true,
-                Overwrite = false
-            };
+                await using var stream = file.OpenReadStream();
+                var uploadParams = new ImageUploadParams
+                {
+                    File = new FileDescription(file.FileName, stream),
+                    Folder = "uploads",
+                    UniqueFilename = true,
+                    Overwrite = false
+                };
 
-            var result = await cloudinary.UploadAsync(uploadParams);
-            if (result.Error != null) return Results.Problem(result.Error.Message);
+                var result = await cloudinary.UploadAsync(uploadParams);
+                if (result.Error != null)
+                    return Results.Json(new { error = "CloudinaryError", message = result.Error.Message }, statusCode: 500);
 
-            return Results.Ok(new { url = result.SecureUrl.ToString() });
+                return Results.Ok(new { url = result.SecureUrl.ToString() });
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { error = ex.GetType().Name, message = ex.Message }, statusCode: 500);
+            }
         })
         .RequireAuthorization()
         .DisableAntiforgery();
@@ -270,22 +297,34 @@ public static class UploadsApi
     {
         app.MapPost("/api/uploads", async (IFormFile file, IAmazonS3 s3, IConfiguration config) =>
         {
+            var bucket = config["AWS_BUCKET_NAME"];
+            var region = config["AWS_REGION"];
+            if (string.IsNullOrEmpty(bucket)) return Results.BadRequest("Server misconfiguration: AWS_BUCKET_NAME not set.");
+            if (string.IsNullOrEmpty(region)) return Results.BadRequest("Server misconfiguration: AWS_REGION not set.");
+
             if (file == null || file.Length == 0) return Results.BadRequest("No file provided.");
             if (file.Length > 10 * 1024 * 1024) return Results.BadRequest("File too large. Maximum 10MB.");
 
             var key = $"uploads/{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-            using var stream = file.OpenReadStream();
 
-            await s3.PutObjectAsync(new PutObjectRequest
+            try
             {
-                BucketName = config["AWS_BUCKET_NAME"],
-                Key = key,
-                InputStream = stream,
-                ContentType = file.ContentType,
-                CannedACL = S3CannedACL.PublicRead
-            });
+                using var stream = file.OpenReadStream();
+                await s3.PutObjectAsync(new PutObjectRequest
+                {
+                    BucketName  = bucket,
+                    Key         = key,
+                    InputStream = stream,
+                    ContentType = file.ContentType,
+                    CannedACL   = S3CannedACL.PublicRead
+                });
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { error = ex.GetType().Name, message = ex.Message }, statusCode: 500);
+            }
 
-            var url = $"https://{config["AWS_BUCKET_NAME"]}.s3.{config["AWS_REGION"]}.amazonaws.com/{key}";
+            var url = $"https://{bucket}.s3.{region}.amazonaws.com/{key}";
             return Results.Ok(new { url });
         })
         .RequireAuthorization()
@@ -346,14 +385,25 @@ public static class UploadsApi
             if (file == null || file.Length == 0) return Results.BadRequest("No file provided.");
             if (file.Length > 10 * 1024 * 1024) return Results.BadRequest("File too large. Maximum 10MB.");
 
-            var container = blobService.GetBlobContainerClient(config["AZURE_STORAGE_CONTAINER"]);
+            var containerName = config["AZURE_STORAGE_CONTAINER"];
+            if (string.IsNullOrEmpty(containerName)) return Results.BadRequest("Server misconfiguration: AZURE_STORAGE_CONTAINER not set.");
+
             var blobName = $"uploads/{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-            var blob = container.GetBlobClient(blobName);
 
-            using var stream = file.OpenReadStream();
-            await blob.UploadAsync(stream, new BlobHttpHeaders { ContentType = file.ContentType });
+            try
+            {
+                var container = blobService.GetBlobContainerClient(containerName);
+                var blob = container.GetBlobClient(blobName);
 
-            return Results.Ok(new { url = blob.Uri.ToString() });
+                using var stream = file.OpenReadStream();
+                await blob.UploadAsync(stream, new BlobHttpHeaders { ContentType = file.ContentType });
+
+                return Results.Ok(new { url = blob.Uri.ToString() });
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { error = ex.GetType().Name, message = ex.Message }, statusCode: 500);
+            }
         })
         .RequireAuthorization()
         .DisableAntiforgery();
