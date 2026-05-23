@@ -14,18 +14,19 @@ Apparition is an **AI Template Starter Kit** for non-technical founders building
 
 ## What to Do Based on What the User Asks
 
-| User says...                                                       | What to do                                                                                                  |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| "Build me an app" / "Let's start" / "I have an idea"               | Load `agents/apparition-build.agent.md`, then run the guided interview in `prompts/onboarding-questions.md` |
-| "Add a feature" / "I need a new page" / "Can you add X"            | Load `agents/apparition-feature.agent.md`                                                                   |
-| "Deploy" / "How do I go live" / "Set up Railway"                   | Load `agents/apparition-deploy.agent.md`                                                                    |
-| "How do I run it locally" / "How do I test locally" / "dotnet run" | Read `docs/local-development.md` and guide through setup                                                    |
-| "How do I set up my folder" / "Where do things go"                 | Read `docs/workspace-setup.md` and explain it                                                               |
-| "How does the database work"                                       | Read `docs/database.md`                                                                                     |
-| "Why did you choose this stack"                                    | Read `docs/architecture.md`                                                                                 |
-| Any question about git, GitHub, GitLab, Bitbucket                  | Read `docs/git-setup.md`                                                                                    |
-| Deployment questions                                               | Read `docs/deployment.md`                                                                                   |
-| Something broke                                                    | Read `docs/troubleshooting.md`                                                                              |
+| User says...                                                                                 | What to do                                                                                                  |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| "Build me an app" / "Let's start" / "I have an idea"                                         | Load `agents/apparition-build.agent.md`, then run the guided interview in `prompts/onboarding-questions.md` |
+| "Add a feature" / "I need a new page" / "Can you add X"                                      | Load `agents/apparition-feature.agent.md`                                                                   |
+| "Deploy" / "How do I go live" / "Set up Railway"                                             | Load `agents/apparition-deploy.agent.md`                                                                    |
+| "How do I run it locally" / "How do I test locally" / "dotnet run"                           | Read `docs/local-development.md` and guide through setup                                                    |
+| "How do I set up my folder" / "Where do things go"                                           | Read `docs/workspace-setup.md` and explain it                                                               |
+| "How does the database work"                                                                 | Read `docs/database.md`                                                                                     |
+| "Why did you choose this stack"                                                              | Read `docs/architecture.md`                                                                                 |
+| Any question about git, GitHub, GitLab, Bitbucket                                            | Read `docs/git-setup.md`                                                                                    |
+| Deployment questions                                                                         | Read `docs/deployment.md`                                                                                   |
+| Something broke                                                                              | Read `docs/troubleshooting.md`                                                                              |
+| "File uploads" / "store images" / "attach files" / "Cloudinary" / "S3" / "R2" / "Azure Blob" | Read `docs/file-storage.md`                                                                                 |
 
 **Always confirm** which folder you are working in before writing any files. Apparition is a toolkit — the user's app is a sibling folder. Never write generated app code into the Apparition toolkit folder.
 
@@ -47,9 +48,10 @@ Reference documentation. Read before explaining anything to the user.
 | File                        | Purpose                                                                                               |
 | --------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `docs/local-development.md` | Step-by-step guide to installing .NET SDK + PostgreSQL and running the app locally with `dotnet run`. |
+| `docs/file-storage.md`      | Cloudflare R2, Cloudinary, AWS S3, and Azure Blob Storage — setup, code, and env vars for each.       |
 | `docs/architecture.md`      | Every stack decision and why it was made. Read this before suggesting any technology.                 |
 | `docs/database.md`          | PostgreSQL + JSONB patterns with Dapper code examples.                                                |
-| `docs/deployment.md`        | Railway and Render step-by-step deployment guides.                                                    |
+| `docs/deployment.md`        | Railway, Render, AWS App Runner, and Azure App Service step-by-step deployment guides.                |
 | `docs/git-setup.md`         | GitHub, GitLab, and Bitbucket account and repo setup.                                                 |
 | `docs/workspace-setup.md`   | How to organise the parent folder so both the toolkit and the user's app are visible.                 |
 | `docs/customization.md`     | How to adapt the template for a specific use case.                                                    |
@@ -69,11 +71,11 @@ AI prompts that work as raw copy-paste (ChatGPT, Claude, etc.) or as agent instr
 ### `agents/`
 Agent definition files. Load the relevant one based on what the user needs.
 
-| File                                 | Purpose                                                                                   |
-| ------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `agents/apparition-build.agent.md`   | Runs the onboarding interview and scaffolds a complete new app. Load this for new builds. |
-| `agents/apparition-feature.agent.md` | Safely adds features to an existing app without breaking what already works.              |
-| `agents/apparition-deploy.agent.md`  | Guides the user through deploying to Railway or Render.                                   |
+| File                                 | Purpose                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `agents/apparition-build.agent.md`   | Runs the onboarding interview and scaffolds a complete new app. Load this for new builds.   |
+| `agents/apparition-feature.agent.md` | Safely adds features to an existing app without breaking what already works.                |
+| `agents/apparition-deploy.agent.md`  | Guides the user through deploying to Railway, Render, AWS App Runner, or Azure App Service. |
 
 ### `.github/`
 | File                              | Purpose                                                                                   |
@@ -84,16 +86,16 @@ Agent definition files. Load the relevant one based on what the user needs.
 
 ## Stack — Follow These Rules Exactly
 
-| Layer               | Technology                            | Rule                                                                                                                                                                         |
-| ------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Frontend — SSR      | Razor Pages (.cshtml)                 | No React, no Vue, no Blazor, no HTMX                                                                                                                                         |
-| Frontend — Reactive | Alpine.js via CDN                     | One `<script>` tag only — no npm, no build step                                                                                                                              |
-| Frontend — Styling  | Bootstrap 5 via CDN                   | Always included. `site.css` = brand color overrides only (under 25 lines). Page-specific styles go in `@section Styles` blocks inside `.cshtml` files — never in `site.css`. |
-| Backend             | ASP.NET Core Minimal API (.NET 8)     | No MVC controllers                                                                                                                                                           |
-| Database            | PostgreSQL + JSONB                    | Use the `documents` table; no new tables without strong justification                                                                                                        |
-| ORM                 | Dapper                                | Never Entity Framework                                                                                                                                                       |
-| Auth                | ASP.NET cookie auth                   | Always included. No JWT, no Auth0, no third-party identity                                                                                                                   |
-| Hosting             | Railway (primary) · Render (fallback) |                                                                                                                                                                              |
+| Layer               | Technology                                                                 | Rule                                                                                                                                                                         |
+| ------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend — SSR      | Razor Pages (.cshtml)                                                      | No React, no Vue, no Blazor, no HTMX                                                                                                                                         |
+| Frontend — Reactive | Alpine.js via CDN                                                          | One `<script>` tag only — no npm, no build step                                                                                                                              |
+| Frontend — Styling  | Bootstrap 5 via CDN                                                        | Always included. `site.css` = brand color overrides only (under 25 lines). Page-specific styles go in `@section Styles` blocks inside `.cshtml` files — never in `site.css`. |
+| Backend             | ASP.NET Core Minimal API (.NET 8)                                          | No MVC controllers                                                                                                                                                           |
+| Database            | PostgreSQL + JSONB                                                         | Use the `documents` table; no new tables without strong justification                                                                                                        |
+| ORM                 | Dapper                                                                     | Never Entity Framework                                                                                                                                                       |
+| Auth                | ASP.NET cookie auth                                                        | Always included. No JWT, no Auth0, no third-party identity                                                                                                                   |
+| Hosting             | Railway (primary) · Render (fallback) · AWS App Runner · Azure App Service |                                                                                                                                                                              |
 
 **Never suggest an alternative to any of these.** If a deviation is genuinely necessary, flag it explicitly before implementing and explain why.
 

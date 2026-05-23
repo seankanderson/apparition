@@ -25,10 +25,48 @@ Output:
 
 ---
 
-## Prompt: Generate a Dockerfile for Render
+## Prompt: Check readiness for AWS App Runner
 
 ```
-Generate a production Dockerfile for my ASP.NET Core (.NET 8) app for deployment to Render.
+Review my ASP.NET Core project and make sure it is ready to deploy to AWS App Runner.
+
+Check for:
+1. A Dockerfile exists at the repo root
+2. The Dockerfile uses mcr.microsoft.com/dotnet/aspnet:8.0 as the runtime image
+3. ASPNETCORE_URLS is set to http://+:8080 in the Dockerfile (not hardcoded in code)
+4. EXPOSE 8080 is in the Dockerfile
+5. The ENTRYPOINT uses the correct .dll name matching the .csproj project name
+6. The connection string is read from environment variable ConnectionStrings__Default
+7. No secrets in committed files
+
+Output any issues found with exact file and line, plus the fixed version.
+```
+
+---
+
+## Prompt: Check readiness for Azure App Service
+
+```
+Review my ASP.NET Core project and make sure it is ready to deploy to Azure App Service.
+
+Check for:
+1. A valid .csproj file at the repo root (or note where it is)
+2. The connection string is read from environment variable ConnectionStrings__Default
+3. ASPNETCORE_URLS is NOT hardcoded — Azure App Service sets the port automatically
+4. No hardcoded localhost URLs
+5. appsettings.json does not contain any secrets
+6. Static files are served with app.UseStaticFiles()
+
+Output any issues found with exact file and line, plus the fixed version.
+Also output the exact App Settings I need to add in the Azure Portal.
+```
+
+---
+
+## Prompt: Generate a Dockerfile for Render or AWS App Runner
+
+```
+Generate a production Dockerfile for my ASP.NET Core (.NET 8) app for deployment to Render or AWS App Runner.
 
 Requirements:
 - Multi-stage build: SDK image for build, runtime image for final

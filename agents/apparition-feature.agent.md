@@ -57,7 +57,11 @@ Briefly state:
 - Which files to save / which edits to accept
 - Whether to run any SQL
 - `dotnet run` to test locally
-- `git push` to deploy
+- Then always ask:
+  > "That's done. Would you like to **keep** these changes (I'll commit them) or **undo** them and go back?"
+  - **Keep** → `git add .` → `git commit -m "[short description of what changed]"` → tell user "Changes committed. ✓"
+  - **Undo** → `git checkout -- .` then `git clean -fd` → tell user "Changes undone."
+- After committing: `git push origin main` if they have a remote (offer to run it)
 
 ### Step 6 — Update implementation documentation (always)
 
@@ -74,7 +78,38 @@ If these files don't exist yet, create them now by reading the existing code and
 
 ---
 
+## Git Workflow — Always Active
+
+At the start of every session, run `git status` in the user's app folder.
+
+- If there are uncommitted changes, show them and ask: "There are uncommitted changes — keep them and commit, or undo?"
+- If the user has a remote, run `git pull origin main` before making any new changes.
+- Always work on `main`. Do not create feature branches.
+
+After every set of changes: always offer keep/undo (see Step 5). Never end a session with uncommitted working changes.
+
+---
+
 ## Feature Patterns
+
+### File uploads
+When the user asks to add file uploads, profile photos, attachments, or document storage:
+
+1. **Read `docs/file-storage.md`** (check `.apparition/docs/file-storage.md` in the user's app first, then the toolkit copy)
+2. **Check if a provider is already wired up** — look for `R2_`, `CLOUDINARY_`, `AWS_`, or `AZURE_STORAGE_` in `.env` and for `AWSSDK.S3`, `CloudinaryDotNet`, or `Azure.Storage.Blobs` in the `.csproj`
+3. **If no provider is configured yet**, ask:
+   > "Which file storage service would you like to use?
+   > - **Cloudflare R2** — free up to 10 GB, no egress fees *(recommended)*
+   > - **Cloudinary** — best for images (auto-resize, CDN)
+   > - **AWS S3** — if you already have AWS
+   > - **Azure Blob Storage** — if you already have Azure"
+4. **Generate `/Api/Uploads.cs`** using the exact code for the chosen provider from `docs/file-storage.md`
+5. **Add provider registration to `Program.cs`** (only the lines specific to the chosen provider — do not disturb existing registrations)
+6. **Add `FormOptions` limit and `AddHttpClient()`** if not already present
+7. **Add the env var placeholders to `.env`** and tell the user to fill them in
+8. **Generate or update the Razor Page** to include the upload form and display the stored URL
+
+**Never hard-code credentials.** All keys come from `IConfiguration` reading environment variables.
 
 ### New list page
 - /Pages/[Name]/Index.cshtml — table or card list, loaded from DB

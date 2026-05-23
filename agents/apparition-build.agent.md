@@ -61,15 +61,16 @@ dev\                        ← parent folder opened in VS Code
 **When you start a new app:**
 1. Confirm the parent folder path with the user (e.g. `C:\dev\` or `~/dev/`)
 2. Create the app folder as a sibling of `apparition\`, never inside it
-3. Create a `planning/` folder in the app root and tell the user:
+3. Create a `planning/` folder in the app root with a `.gitkeep` file inside it so the folder is tracked by git, and tell the user:
    > "I've created a `planning/` folder. Drop any notes, spreadsheets, copied AI responses, or rough ideas in there as text or markdown files. I'll read them at the start of every session — the more context you give me, the better the results."
-4. Create a `planning/assets/` subfolder and tell the user:
+4. Create a `planning/assets/` subfolder with a `.gitkeep` file inside it so the folder is tracked by git, and tell the user:
    > "I've also created a `planning/assets/` folder. Drop your logo, brand images, screenshots, or any visual files in there. At the start of each session I'll scan for them and wire any logo I find directly into your app's header."
 5. Tell the user to open VS Code at the parent folder so both are visible
 6. If the user seems confused, reference `docs/workspace-setup.md`
 7. **Generate a `.gitignore`** (see below)
 8. **Seed the `.apparition/` folder** with toolkit copies (see below)
 9. **Offer a VS Code window color** (see below)
+10. **Initialize git and make the first commit** (see Git Workflow section below)
 
 **When files already exist:** Use `file_search` to confirm whether you're working in the Apparition folder or the user's app folder before writing anything.
 
@@ -128,6 +129,7 @@ When scaffolding a new app, copy these files from the Apparition toolkit into a 
 ```
 .apparition/
   AGENTS.md
+  .env.example
   prompts/
     master-prompt.md
     auth-prompt.md
@@ -138,11 +140,13 @@ When scaffolding a new app, copy these files from the Apparition toolkit into a 
     architecture.md
     database.md
     deployment.md
+    file-storage.md
     local-development.md
     git-setup.md
     workspace-setup.md
     troubleshooting.md
     customization.md
+    patterns.md
   agents/
     apparition-build.agent.md
     apparition-feature.agent.md
@@ -450,6 +454,41 @@ These files serve three purposes:
 - They give the user a plain-English record of what their app does
 - They act as a handoff document if the user ever brings in another developer
 
+## Build State — Track Progress for Resumability
+
+During a new app build, maintain `.apparition/build-state.md` in the user's app folder. Write to it after each phase completes. This lets you (and the user) resume an interrupted build instantly without re-reading all source files.
+
+Create the file immediately when scaffolding starts:
+
+```markdown
+# Build State
+
+App: [app_name]
+Started: [date]
+
+## Phases
+
+- [ ] Scaffold (dotnet new web, folder structure, .gitignore, .env, launchSettings.json)
+- [ ] Database (schema.sql)
+- [ ] Auth (Program.cs auth middleware, Login/Logout pages, SeedAdmin.cs)
+- [ ] Data layer (/Data repositories)
+- [ ] API layer (/Api endpoints)
+- [ ] Pages (/Pages — all Razor pages)
+- [ ] Styling (site.css, _Layout.cshtml)
+- [ ] File storage (if applicable)
+- [ ] Git init + first commit
+- [ ] dotnet build — clean ✅
+
+## Notes
+[Any issues hit, decisions made, or things left to do]
+```
+
+Mark each phase complete (`- [x]`) as you finish it. Update **Notes** with any gotchas or deferred work.
+
+This file is committed to git as part of the project. It stays in `.apparition/` alongside the toolkit snapshot.
+
+---
+
 ## Security Rules — Always Enforce These
 
 ### API Keys and Third-Party Services
@@ -509,6 +548,53 @@ app.MapGet("/api/products", async (...) => { ... }).AllowAnonymous();
 ```
 
 When uncertain, **require auth**. It's always easier to remove a restriction than recover from a breach, spam wave, or surprise bill.
+
+---
+
+### File Storage — Scaffold When `app_file_storage` Is Set
+
+If `app_file_storage` is not `none`, generate the upload infrastructure immediately when scaffolding the app. Do not wait for the user to ask for it later.
+
+**Step 1 — Add the NuGet package** for the chosen provider:
+
+| Provider | Package |
+|----------|---------|
+| `r2` | `dotnet add package AWSSDK.S3` |
+| `cloudinary` | `dotnet add package CloudinaryDotNet` |
+| `s3` | `dotnet add package AWSSDK.S3` |
+| `azure` | `dotnet add package Azure.Storage.Blobs` |
+
+**If Stripe.net is added at any point** (for payment features), always follow it with a Newtonsoft.Json version pin — Stripe.net's transitive dependency pulls in a vulnerable version:
+```
+dotnet add package Stripe.net
+dotnet add package Newtonsoft.Json --version 13.0.3
+```
+Never add Stripe.net without the pin. See `docs/troubleshooting.md` for the full explanation.
+
+**Step 2 — Generate `/Api/Uploads.cs`** using the correct provider implementation. Read `docs/file-storage.md` (the `.apparition/` copy) and use the code for the chosen provider verbatim — do not improvise.
+
+**Step 3 — Add provider registration to `Program.cs`** using the section in `docs/file-storage.md` for the chosen provider.
+
+**Step 4 — Add the env vars to `.env`** with placeholder values:
+
+| Provider | Variables to add |
+|----------|-----------------|
+| `r2` | `R2_ACCOUNT_ID=CHANGE_ME`, `R2_ACCESS_KEY_ID=CHANGE_ME`, `R2_SECRET_ACCESS_KEY=CHANGE_ME`, `R2_BUCKET_NAME=CHANGE_ME`, `R2_PUBLIC_URL=CHANGE_ME` |
+| `cloudinary` | `CLOUDINARY_CLOUD_NAME=CHANGE_ME`, `CLOUDINARY_API_KEY=CHANGE_ME`, `CLOUDINARY_API_SECRET=CHANGE_ME` |
+| `s3` | `AWS_ACCESS_KEY_ID=CHANGE_ME`, `AWS_SECRET_ACCESS_KEY=CHANGE_ME`, `AWS_REGION=CHANGE_ME`, `AWS_BUCKET_NAME=CHANGE_ME` |
+| `azure` | `AZURE_STORAGE_CONNECTION_STRING=CHANGE_ME`, `AZURE_STORAGE_CONTAINER=uploads` |
+
+**Step 5 — Create `wwwroot/uploads/.gitkeep`** so the uploads directory exists in the repository and survives a fresh clone. Without this, the directory won't exist at runtime and file writes will fail.
+
+**Step 6 — Tell the user:**
+> "I've set up file uploads using [Provider]. Before it will work, you'll need to:
+> 1. Create a [Provider] account (see `docs/file-storage.md` for setup steps)
+> 2. Open your `.env` file and replace each `CHANGE_ME` with your real credentials
+> 3. Add those same variables in Railway or Render when you deploy"
+
+**Add the `FormOptions` limit** to `Program.cs` and register `IHttpClientFactory` — both are required regardless of provider (see `docs/file-storage.md`).
+
+**Do not scaffold file uploads if `app_file_storage` is `none` or was not set during the interview.**
 
 ---
 
@@ -759,6 +845,67 @@ body { background-color: #0f172a; color: #f1f5f9; }
    - Which files were created or changed
    - Whether they need to run any SQL (new indexes etc.)
    - Whether they need to restart `dotnet run`
+5. **Run `dotnet build` and fix all errors before declaring the build complete.** This is mandatory — not optional. A build that hasn't compiled is not done. If build fails, read the error output, fix the issue, and run `dotnet build` again until it succeeds cleanly.
+
+---
+
+## Git Workflow — Always Active
+
+Git is used for every app. These rules apply to every session, every time.
+
+### Initial commit — end of every new app scaffold
+
+After all files are generated for a new app, run these commands in the user's app folder:
+
+```
+git init
+git branch -M main
+git add .
+git commit -m "Initial scaffold: [app name]"
+```
+
+Tell the user:
+> "I've set up git and made the first commit. Your project history starts here — every change from now on will be tracked."
+
+If the user already has a remote repository (GitHub, GitLab, Bitbucket), also run:
+```
+git remote add origin [their repo URL]
+git push -u origin main
+```
+
+If they don't have a remote yet, remind them they can add one later. Reference `docs/git-setup.md`.
+
+### After every change session — keep or undo
+
+After generating any code change (new feature, fix, edit), always ask:
+
+> "That's done. Would you like to **keep** these changes (I'll commit them) or **undo** them and go back to where we started?"
+
+**If keep:**
+1. `git add .`
+2. `git commit -m "[short present-tense description of what changed]"`
+   - Good: `"Add invoice list page"`, `"Fix login redirect"`, `"Add file upload to client profile"`
+   - Bad: `"changes"`, `"update"`, `"fix"`
+3. Tell the user: "Changes committed. ✓"
+
+**If undo:**
+1. `git checkout -- .` (revert tracked file changes)
+2. `git clean -fd` (remove any newly created untracked files)
+3. Tell the user: "Changes undone — you're back to the last commit."
+
+### Keep main up to date — start of every session
+
+At the start of any session on an existing app, run:
+
+```
+git status
+```
+
+- If there are uncommitted changes from a previous session, show them to the user and ask: "There are uncommitted changes from last time — want to keep them and commit, or undo them?"
+- If the user has a remote, also run `git pull origin main` to pull in any changes before doing any work.
+- Always work on `main`. Do not create feature branches — this workflow is intentionally simple.
+
+---
 
 ## Common Tasks and How to Handle Them
 
@@ -800,3 +947,4 @@ the git push commands for their repo URL.
 - Do not use Entity Framework even if the user asks — explain why and offer Dapper instead
 - **Do not write the user's app code into the Apparition toolkit folder**
 - **Do not skip updating `SPEC.md` and `docs/implementation.md` after a build session**
+- **Do not make code changes without offering the user a keep/undo choice and committing on keep**

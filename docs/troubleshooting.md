@@ -98,6 +98,70 @@ Fix: Make sure your `Pages/Index.cshtml` returns a 200 OK (the default for a val
 
 ---
 
+## Known Build Gotchas
+
+These are issues that have caused real build failures. Check here before spending time debugging.
+
+---
+
+### `SignOutAsync` build error — missing using directive
+
+**Symptom:** `CS1061: 'HttpContext' does not contain a definition for 'SignOutAsync'`
+
+**Cause:** `HttpContext.SignOutAsync()` is an extension method from `Microsoft.AspNetCore.Authentication`. The `using` for cookie auth alone isn't enough.
+
+**Fix:** Add to the top of the file (PageModel or endpoint):
+```csharp
+using Microsoft.AspNetCore.Authentication;
+```
+
+---
+
+### `@@click`, `@@change` — Alpine.js in Razor files
+
+**Symptom:** Alpine.js event bindings silently do nothing. No error in the browser, no JS console output.
+
+**Cause:** Razor treats `@` as a C# expression start. A single `@click` gets parsed as a Razor directive and stripped from the output HTML.
+
+**Fix:** Always double the `@` in `.cshtml` files:
+```html
+<!-- Wrong (silently stripped by Razor) -->
+<button @click="doSomething()">Click me</button>
+
+<!-- Correct -->
+<button @@click="doSomething()">Click me</button>
+<select @@change="filter = $event.target.value">...</select>
+```
+
+This applies to all Alpine.js event directives: `@@click`, `@@change`, `@@input`, `@@submit`, `@@keydown`, etc.
+
+---
+
+### Stripe.net pulls in a vulnerable `Newtonsoft.Json`
+
+**Symptom:** After adding Stripe.net, `dotnet build` or a security scanner warns about a vulnerable version of `Newtonsoft.Json`.
+
+**Cause:** Stripe.net's transitive dependency pins an older, vulnerable `Newtonsoft.Json` version.
+
+**Fix:** Always follow `dotnet add package Stripe.net` with an explicit override:
+```
+dotnet add package Newtonsoft.Json --version 13.0.3
+```
+
+This forces the resolver to use the safe version. Add both lines to your setup notes.
+
+---
+
+### `create_file` won't overwrite scaffold files
+
+**Symptom:** After `dotnet new web`, trying to replace `Program.cs` or other scaffold files with `create_file` fails silently or errors — the original content remains.
+
+**Cause:** `dotnet new web` creates `Program.cs`, `appsettings.json`, and other files at scaffold time. `create_file` refuses to overwrite existing files.
+
+**Fix:** Use `replace_string_in_file` (not `create_file`) for any file that may already exist from the scaffold. When in doubt, check with `read_file` first to confirm whether a file exists before deciding which tool to use.
+
+---
+
 ## AI / Copilot Issues
 
 ### AI generated code that doesn't compile

@@ -1,6 +1,13 @@
 # Deployment Guide
 
-You'll have your app live in about 10 minutes following this guide. Railway is the recommended path. Render is the fallback.
+You'll have your app live in about 10 minutes following this guide. Railway is the recommended path — pick the option that matches where you already have an account.
+
+| Option          | Best for                    | Database                      |
+| --------------- | --------------------------- | ----------------------------- |
+| **A — Railway** | Everyone — simplest overall | Built-in PostgreSQL           |
+| **B — Render**  | Railway fallback            | Built-in PostgreSQL           |
+| **C — AWS**     | Already using AWS           | Amazon RDS                    |
+| **D — Azure**   | Already using Azure         | Azure Database for PostgreSQL |
 
 ---
 
@@ -9,7 +16,7 @@ You'll have your app live in about 10 minutes following this guide. Railway is t
 Make sure you have:
 - [ ] A GitHub account
 - [ ] Your project code pushed to a GitHub repository
-- [ ] A Railway or Render account (free tier is fine to start)
+- [ ] An account on your chosen platform (free tier is fine to start)
 
 ---
 
@@ -106,6 +113,110 @@ Use the **Render Shell** tab on your PostgreSQL service to run `schema.sql`.
 
 ---
 
+## Option C: AWS (App Runner + RDS)
+
+Use this if you already have an AWS account. App Runner builds your container directly from GitHub — no Docker knowledge needed.
+
+### Step 1 — Add a Dockerfile
+
+Create a `Dockerfile` in the root of your project (same file as shown in Option B above):
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet publish -c Release -o /app/publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+COPY --from=build /app/publish .
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "App.dll"]
+```
+
+Replace `App.dll` with your project name (e.g. `MyApp.dll`).
+
+### Step 2 — Create a PostgreSQL database on Amazon RDS
+
+1. AWS Console → **RDS → Create database**
+2. Engine: **PostgreSQL**, Template: **Free tier**
+3. Set a DB instance identifier (e.g. `myapp-db`), master username (`postgres`), and a strong password
+4. DB name: `myapp`
+5. Under **Connectivity** → check **Publicly accessible: Yes**
+6. Click **Create database** — takes about 5 minutes
+
+### Step 3 — Create an App Runner service
+
+1. AWS Console → **App Runner → Create service**
+2. Source type: **Source code repository → GitHub** → Connect your account → select your repo → branch: `main`
+3. Deployment trigger: **Automatic**
+4. Build: App Runner detects the Dockerfile automatically
+5. Port: **8080**
+6. Under **Environment variables**, add:
+   ```
+   ConnectionStrings__Default = Host=<RDS endpoint>;Port=5432;Database=myapp;Username=postgres;Password=<your password>
+   ASPNETCORE_ENVIRONMENT    = Production
+   ```
+7. Click **Create and deploy** — first build takes ~5 minutes
+
+### Step 4 — Run the schema
+
+1. Download [TablePlus](https://tableplus.com) (free tier)
+2. Create a new connection → PostgreSQL → enter your RDS endpoint, username, and password
+3. Open your `schema.sql` file, paste it into the query window, and run it
+
+**Your URL:** shown on the App Runner service page under **Default domain**.
+
+---
+
+## Option D: Azure (App Service + Azure Database for PostgreSQL)
+
+Use this if you already have an Azure account. Azure App Service has native .NET 8 support — no Docker required.
+
+### Step 1 — Create a PostgreSQL database
+
+1. Azure Portal → **Create a resource** → search **Azure Database for PostgreSQL**
+2. Choose **Flexible Server → Create**
+3. Set server name, admin username (`pgadmin`), and a strong password
+4. Under **Networking** → check **Allow public access from any Azure service within Azure to this server**
+5. Click **Review + create** — takes about 5 minutes
+
+### Step 2 — Create an App Service
+
+1. Azure Portal → **Create a resource → Web App**
+2. Settings:
+   - **Runtime stack:** .NET 8 (LTS)
+   - **Operating system:** Linux
+   - **Region:** same region as your database
+   - **Pricing plan:** Free F1 (to start)
+3. Click **Review + create**
+
+### Step 3 — Connect GitHub for automatic deploys
+
+1. In your App Service → **Deployment Center**
+2. Source: **GitHub** → Authorize → select your repo and `main` branch
+3. Save — Azure creates a GitHub Actions workflow and the first deploy starts automatically
+
+### Step 4 — Set environment variables
+
+1. In your App Service → **Environment variables → App settings**, click **+ Add** for each:
+   ```
+   ConnectionStrings__Default = Host=<server>.postgres.database.azure.com;Port=5432;Database=postgres;Username=pgadmin;Password=<your password>;Ssl Mode=Require
+   ASPNETCORE_ENVIRONMENT    = Production
+   ```
+2. Click **Apply** and **Confirm** — the app restarts automatically
+
+### Step 5 — Run the schema
+
+1. Azure Portal → your PostgreSQL resource → **Query editor** (left sidebar)
+2. Log in with your credentials
+3. Paste the contents of `schema.sql` and click **Run**
+
+**Your URL:** `https://your-app-name.azurewebsites.net`
+
+---
+
 ## Environment Variables Reference
 
 | Variable                     | Value                      | Required      |
@@ -118,11 +229,18 @@ Use the **Render Shell** tab on your PostgreSQL service to run `schema.sql`.
 
 ## Custom Domain
 
-Both Railway and Render allow you to add a custom domain for free.
+All four platforms support custom domains.
+
+| Platform          | Where to find it                                 |
+| ----------------- | ------------------------------------------------ |
+| Railway           | Service → Settings → Domains → Add Custom Domain |
+| Render            | Service → Settings → Custom Domains              |
+| AWS App Runner    | Service → Custom domains → Link domain           |
+| Azure App Service | App Service → Custom domains → Add custom domain |
 
 1. Buy a domain (Namecheap, Cloudflare Registrar, etc.)
-2. In Railway/Render, go to your service → **Settings → Domains → Add Custom Domain**
-3. Follow the DNS instructions — usually takes 5–30 minutes to propagate
+2. Add it in your platform's domain settings and follow the DNS instructions
+3. DNS propagation usually takes 5–30 minutes
 
 ---
 

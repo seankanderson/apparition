@@ -147,7 +147,17 @@ Then ask about existing planning material:
 
 > "Is there anything else about how the app should work that we haven't covered yet? Even a vague thought is useful."
 
-Then proceed to STEP 2.
+**Before proceeding to STEP 2 — check for technical vocabulary in the STEP 1 answers:**
+
+If the user's responses mention specific frameworks, stack choices, database types, API patterns, or other technical terms (e.g., "REST API", "PostgreSQL", "React", "auth tokens", "CRUD", "foreign keys", "microservices", "endpoints"), they are likely a technical user who will find the guided interview tedious.
+
+In that case, offer the fast-path before continuing:
+
+> "You seem technical — want to skip the guided interview and describe your full app spec in one go instead? Just write it out however you'd like — stack, pages, data model, auth, deployment target, whatever you know. I'll fill in any gaps and confirm before building."
+
+**If they accept:** Read their full spec, extract all the values that the interview would have collected (`app_idea`, `app_audience`, `app_name`, `app_features`, `app_auth`, `app_vibe`, `app_data`, `git_provider`, `app_hosting`, `admin_email`, etc.), then go straight to STEP 11 (Confirm and Build) with a summary. Skip all intermediate steps.
+
+**If they decline or are unsure:** Continue with STEP 2 as normal.
 
 ---
 
@@ -224,20 +234,35 @@ Then ask a follow-up about interactivity:
 
 **Store as:** `app_interactivity` (`none` | `some` | `heavy`)
 
+**File upload check:** After capturing `app_features[]`, scan the list for any mention of: upload, photo, image, profile picture, attachment, document, file, logo, scan, receipt, or screenshot.
+
+If found, ask:
+
+> "Your app involves file uploads — photos, documents, or attachments. Files can't be stored on the server itself (they'd be deleted on every redeploy), so we'll connect to an external file storage service. Four options:
+>
+> a) **Cloudflare R2** — free up to 10 GB, no fees for downloads, works with any file type *(recommended if you're not already using AWS or Azure)*
+> b) **Cloudinary** — free tier, best if your app is heavily image-focused (auto-resize, CDN, image transformations)
+> c) **AWS S3** — industry standard; choose this if you already have an AWS account
+> d) **Azure Blob Storage** — choose this if you already have an Azure account
+>
+> Which do you prefer, or should I suggest one?"
+
+**If they ask for a suggestion:** recommend Cloudflare R2 (no egress fees, genuinely free for most small apps).
+
+**If no file uploads are mentioned in their features:** skip this question entirely.
+
+**Store as:** `app_file_storage` (`r2` | `cloudinary` | `s3` | `azure` | `none`)
+
 ---
 
 ## STEP 5 — Type of Login [`apparition_collect_auth`]
 
 Every Apparition app includes authentication — at minimum, a secure admin account so the owner can manage the app. Tell the user this, then ask:
 
-> "Every app I build includes a login system — at minimum, a secure admin account for you.
-> The question is whether your users also need their own accounts:
+> "Every app I build includes a login for you. Quick question:
 >
-> a) **Admin only** — you log in to manage the app behind the scenes; visitors use the rest of the site without accounts
->    *(good for: internal tools, client-facing portals where you manage everything, simple public-facing apps with a private dashboard)*
->
-> b) **User accounts** — people sign up and get their own profile, data, or dashboard
->    *(good for: SaaS apps, booking systems, marketplaces, anything where each user owns their own records)*"
+> a) **Admin only** — you manage it, visitors don't log in
+> b) **User accounts** — people sign up and get their own data"
 
 **If unsure:** Default to `admin_only`. They can always add user accounts later with the feature agent.
 
@@ -247,33 +272,29 @@ Every Apparition app includes authentication — at minimum, a secure admin acco
 
 ## STEP 6 — Look & Feel [`apparition_collect_style`]
 
-Ask the user:
+Ask all three style questions in **one message** — there are no dependencies between them:
 
-> "Almost done — this one's fun. What vibe should your app give off?
+> "Almost done — this one's fun. Three quick style questions in one go:
 >
+> **1. Vibe** — what feeling should your app give off?
 > a) **Professional & Clean** — calm, trustworthy, suits business and admin tools
 > b) **Bold & Energetic** — punchy, high-contrast, suits marketplaces and active apps
 > c) **Warm & Friendly** — approachable, earthy, suits service businesses and communities
 > d) **Dark & Focused** — sleek, modern, low-light, suits productivity and tech tools
-> e) **Minimal & Modern** — ultra-clean, near-white, understated, suits premium or portfolio apps"
-
-**Store as:** `app_vibe` (`professional` | `bold` | `warm` | `dark` | `minimal`)
-
-Then ask:
-
-> "Do you have a main brand colour?
-> You can describe it ('deep teal', 'warm orange', 'a blue like Stripe'), paste a hex code like `#2563eb`, or say 'no preference' and I'll choose one that fits your vibe."
-
-**Store as:** `app_brand_color` (hex code, colour description, or `no preference`)
-
-Then ask:
-
-> "Light or dark background?
+> e) **Minimal & Modern** — ultra-clean, near-white, understated, suits premium or portfolio apps
+>
+> **2. Brand colour** — do you have one?
+> Describe it ('deep teal', 'warm orange', 'a blue like Stripe'), paste a hex code like `#2563eb`, or say 'no preference' and I'll choose one that fits the vibe.
+>
+> **3. Background** — light or dark?
 > a) **Light** — white or off-white background, dark text (the safe default)
 > b) **Dark** — near-black background, light text
 > c) **Let you decide** — I'll match whatever fits the vibe best"
 
-**Store as:** `app_background` (`light` | `dark` | `auto`)
+**Store as:**
+- `app_vibe` (`professional` | `bold` | `warm` | `dark` | `minimal`)
+- `app_brand_color` (hex code, colour description, or `no preference`)
+- `app_background` (`light` | `dark` | `auto`)
 
 Then proceed to STEP 7.
 
