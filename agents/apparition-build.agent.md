@@ -950,6 +950,7 @@ body { background-color: #0f172a; color: #f1f5f9; }
 - **Security:** All `/api/*` endpoints default to `.RequireAuthorization()`. API keys always in env vars, never in front-end code. Third-party services always proxied through `/Api/`.
 - **Structure:** Single project. Files live in /Pages, /Api, /Data, Program.cs.
 - **Program.cs:** Keep under 60 lines. No complex wiring.
+- **Error logging:** Every API endpoint and PageModel handler must catch exceptions and log them with `ILogger`. Errors must never fail silently. See the Error Handling section below for the required patterns.
 - **Published output:** Any file the app reads at runtime (e.g. `schema.sql`) must be marked in the `.csproj` so it is copied into the published output. Railway, Render, and all container-based platforms build with `dotnet publish` — files not explicitly marked are not present in the deployed app and will cause runtime failures. Use `<Content Include="filename"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>` for every such file.
 
 ## File Location Rules
@@ -962,6 +963,80 @@ body { background-color: #0f172a; color: #f1f5f9; }
 | Database schema | schema.sql (root) |
 | Shared layout | /Pages/Shared/_Layout.cshtml |
 | View start / imports | /Pages/_ViewStart.cshtml and /Pages/_ViewImports.cshtml — **never** in /Pages/Shared/; Razor only walks up from the page's own directory, so files in Shared are invisible to Index.cshtml and all other top-level pages |
+
+## Error Handling — Always Required
+
+Every handler that touches the database, a third-party service, or user input must catch exceptions and log them. Unhandled exceptions in production give users a blank crash page with no context in the logs.
+
+### Minimal API endpoints
+
+Inject `ILogger<Program>` and wrap the handler body:
+
+```csharp
+app.MapPost("/api/invoices", async (InvoiceRequest req, IDbConnection db, ILogger<Program> logger) =>
+{
+    try
+    {
+        var result = await _repo.CreateAsync(req);
+        return Results.Ok(result);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Failed to create invoice for {ClientId}", req.ClientId);
+        return Results.Problem("An error occurred. Please try again.");
+    }
+}).RequireAuthorization();
+```
+
+### Razor Page handlers
+
+Inject `ILogger<T>` via the constructor:
+
+```csharp
+public class IndexModel : PageModel
+{
+    private readonly InvoiceRepository _repo;
+    private readonly ILogger<IndexModel> _logger;
+
+    public IndexModel(InvoiceRepository repo, ILogger<IndexModel> logger)
+    {
+        _repo = repo;
+        _logger = logger;
+    }
+
+    public async Task<IActionResult> OnPostAsync()
+    {
+        try
+        {
+            await _repo.CreateAsync(/* ... */);
+            return RedirectToPage("./Index");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save invoice");
+            ModelState.AddModelError("", "Something went wrong. Please try again.");
+            return Page();
+        }
+    }
+}
+```
+
+### Global exception handler in `Program.cs`
+
+Always add this after `var app = builder.Build()`:
+
+```csharp
+if (app.Environment.IsDevelopment())
+    app.UseDeveloperExceptionPage();
+else
+    app.UseExceptionHandler("/error");
+
+app.MapGet("/error", () => Results.Problem()).AllowAnonymous();
+```
+
+This catches any exception that slips past a handler and returns a clean `500 Problem` response instead of a crash page.
+
+---
 
 ## How to Handle Requests
 
